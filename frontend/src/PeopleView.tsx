@@ -1,5 +1,13 @@
 import type { Person } from "./api";
 
+function DemoBadge() {
+  return (
+    <span className="demo-badge" title="A demo profile, not a real person">
+      demo
+    </span>
+  );
+}
+
 function Compatibility({ person }: { person: Person }) {
   if (person.score !== null) {
     return (
@@ -34,6 +42,7 @@ export function PeopleView({ people }: { people: Person[] }) {
           <li key={person.id}>
             <span className="person-name">
               <span aria-hidden="true">{person.emoji}</span> {person.nickname}
+              {person.demo && <DemoBadge />}
             </span>
             <Compatibility person={person} />
           </li>

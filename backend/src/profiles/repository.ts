@@ -3,6 +3,8 @@ export interface Profile {
   userId: string;
   nickname: string;
   emoji: string;
+  /** True for the labeled demo personas. Absent for real users. */
+  demo?: boolean;
 }
 
 /** Storage seam for profiles. Replace the in-memory implementation to use a real database. */

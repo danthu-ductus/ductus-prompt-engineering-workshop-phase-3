@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CompatibilityService } from "./compatibility/service.js";
 import type { MatchService } from "./matches/service.js";
+import { isDemoUserId } from "./demo/personas.js";
 import { IMAGE_PATH } from "./memes/catalog.js";
 import { DIRECTIONS, type Direction } from "./swipes/repository.js";
 import { InvalidProfileError, type ProfileService } from "./profiles/service.js";
@@ -15,6 +16,11 @@ function requireUserId(req: Request, res: Response): string | null {
   const userId = req.header("X-User-Id")?.trim();
   if (!userId) {
     res.status(400).json({ error: "Missing X-User-Id header" });
+    return null;
+  }
+  // Demo personas are labeled stand-ins that cannot be signed in as.
+  if (isDemoUserId(userId)) {
+    res.status(403).json({ error: "This user id is reserved for demo profiles" });
     return null;
   }
   return userId;

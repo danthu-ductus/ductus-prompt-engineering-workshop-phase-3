@@ -21,6 +21,8 @@ export interface Person {
   id: string;
   nickname: string;
   emoji: string;
+  /** True for a labeled demo persona. */
+  demo: boolean;
   sharedCount: number;
   score: number | null;
   /** How many more memes both need to swipe before there is a score. 0 when there is one. */
@@ -85,6 +87,7 @@ export function createCompatibilityService(
             id: publicId(profile.userId),
             nickname: profile.nickname,
             emoji: profile.emoji,
+            demo: profile.demo === true,
             sharedCount,
             score,
             memesNeeded: Math.max(0, MIN_SHARED_MEMES - sharedCount),

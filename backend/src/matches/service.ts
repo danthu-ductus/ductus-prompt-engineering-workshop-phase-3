@@ -9,6 +9,8 @@ export const MATCH_MIN_SCORE = 70;
 export interface MatchedPerson {
   nickname: string;
   emoji: string;
+  /** True for a labeled demo persona. */
+  demo: boolean;
 }
 
 /** A match to celebrate. It never contains a user id (today that id is the API credential). */
@@ -59,8 +61,8 @@ export function createMatchService(
         if (!other) continue;
         result.push({
           id: publicId(otherId),
-          me: { nickname: me.nickname, emoji: me.emoji },
-          person: { nickname: other.nickname, emoji: other.emoji },
+          me: { nickname: me.nickname, emoji: me.emoji, demo: me.demo === true },
+          person: { nickname: other.nickname, emoji: other.emoji, demo: other.demo === true },
           score: match.score,
           sharedCount: match.sharedCount,
         });

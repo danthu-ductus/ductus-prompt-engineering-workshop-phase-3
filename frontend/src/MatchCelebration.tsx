@@ -31,6 +31,14 @@ export function MatchCelebration({ match, onClose }: MatchCelebrationProps) {
           <span aria-hidden="true">{match.me.emoji}</span> {match.me.nickname}{" "}
           <span aria-hidden="true">❤️</span> <span aria-hidden="true">{match.person.emoji}</span>{" "}
           {match.person.nickname}
+          {match.person.demo && (
+            <>
+              {" "}
+              <span className="demo-badge" title="A demo profile, not a real person">
+                demo
+              </span>
+            </>
+          )}
         </p>
         <p>
           {match.score}% compatible across {match.sharedCount} memes
