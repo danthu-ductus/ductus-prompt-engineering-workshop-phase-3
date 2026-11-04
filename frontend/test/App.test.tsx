@@ -7,7 +7,27 @@ const second = { id: "m2", caption: "Friday deploy", imageUrl: "/api/memes/image
 
 const ok = (body: unknown) => ({ ok: true, json: async () => body });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
+
+/** A fake backend that serves the given memes one after another and accepts every swipe. */
+function fakeBackend(memes: { id: string; caption: string; imageUrl: string }[]) {
+  let served = 0;
+  const fetchMock = vi.fn(async (_url: string, init: RequestInit = {}) =>
+    init.method === "POST" ? ok({}) : ok({ meme: memes[served++] ?? null }),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+const manyMemes = (count: number) =>
+  Array.from({ length: count }, (_, i) => ({
+    id: `m${i}`,
+    caption: `Meme ${i}`,
+    imageUrl: `/api/memes/images/m${i}.svg`,
+  }));
 
 describe("App", () => {
   it("shows the meme returned by the backend", async () => {
@@ -159,6 +179,85 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Like" }));
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+
+  describe("celebrations", () => {
+    async function swipeAll(memes: { caption: string }[], labels: string[]) {
+      for (const [i, label] of labels.entries()) {
+        fireEvent.click(screen.getByRole("button", { name: label }));
+        await screen.findByRole("img", { name: memes[i + 1].caption });
+      }
+    }
+
+    it("throws confetti after five likes in a row, not before", async () => {
+      const memes = manyMemes(6);
+      fakeBackend(memes);
+      render(<App />);
+      await screen.findByRole("img", { name: memes[0].caption });
+
+      await swipeAll(memes, ["Like", "Like", "Like", "Like"]);
+      expect(screen.queryByTestId("confetti")).not.toBeInTheDocument();
+
+      await swipeAll(memes.slice(4), ["Like"]);
+      expect(screen.getByTestId("confetti")).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent("5 likes in a row");
+    });
+
+    it("starts the streak over after a nope", async () => {
+      const memes = manyMemes(7);
+      fakeBackend(memes);
+      render(<App />);
+      await screen.findByRole("img", { name: memes[0].caption });
+
+      await swipeAll(memes, ["Like", "Like", "Like", "Like", "Nope", "Like"]);
+
+      expect(screen.queryByTestId("confetti")).not.toBeInTheDocument();
+    });
+
+    it("celebrates the 100th swipe ever in this browser, even after a reset", async () => {
+      // 99 swipes were made earlier, for example before a Reset.
+      localStorage.setItem("meme-tinder-swipe-count", "99");
+      const memes = manyMemes(2);
+      fakeBackend(memes);
+      render(<App />);
+      await screen.findByRole("img", { name: memes[0].caption });
+
+      await swipeAll(memes, ["Nope"]);
+
+      expect(screen.getByRole("status")).toHaveTextContent("100 memes swiped");
+      expect(screen.getByTestId("confetti")).toBeInTheDocument();
+    });
+
+    it("keeps the message but drops the confetti when motion is reduced", async () => {
+      vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+      const memes = manyMemes(6);
+      fakeBackend(memes);
+      render(<App />);
+      await screen.findByRole("img", { name: memes[0].caption });
+
+      await swipeAll(memes, ["Like", "Like", "Like", "Like", "Like"]);
+
+      expect(screen.getByRole("status")).toHaveTextContent("5 likes in a row");
+      expect(screen.queryByTestId("confetti")).not.toBeInTheDocument();
+    });
+  });
+
+  it("brings the card back when a swipe fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(ok({ meme: first }))
+        .mockResolvedValueOnce({ ok: false, status: 500 }),
+    );
+    render(<App />);
+    await screen.findByRole("img", { name: first.caption });
+
+    fireEvent.click(screen.getByRole("button", { name: "Like" }));
+
+    await screen.findByRole("alert");
+    const card = screen.getByRole("img", { name: first.caption }).closest("figure");
+    expect(card).not.toHaveClass("leaving");
   });
 
   describe("likes view", () => {

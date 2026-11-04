@@ -76,6 +76,78 @@ describe("MemeCard", () => {
     expect(card.style.transform).toContain("translateX(0px)");
   });
 
+  describe("stamps", () => {
+    const opacity = (text: string) => screen.getByText(text).style.opacity;
+
+    it("shows no stamp at rest", () => {
+      setup();
+
+      expect(opacity("LIKE")).toBe("0");
+      expect(opacity("NOPE")).toBe("0");
+    });
+
+    it.each([
+      [SWIPE_THRESHOLD / 2, "LIKE", "NOPE"],
+      [-SWIPE_THRESHOLD / 2, "NOPE", "LIKE"],
+    ])("fades in with the drag distance (%ipx shows %s)", (distance, shown, hidden) => {
+      const { card } = setup();
+
+      fireEvent.pointerDown(card, { clientX: 200, pointerId: 1 });
+      fireEvent.pointerMove(card, { clientX: 200 + distance, pointerId: 1 });
+
+      expect(opacity(shown)).toBe("0.5");
+      expect(opacity(hidden)).toBe("0");
+
+      fireEvent.pointerMove(card, { clientX: 200 + distance * 4, pointerId: 1 });
+      expect(opacity(shown)).toBe("1");
+    });
+
+    it("tints the card in the color of the drag direction", () => {
+      const { card } = setup();
+
+      fireEvent.pointerDown(card, { clientX: 200, pointerId: 1 });
+      fireEvent.pointerMove(card, { clientX: 200 + SWIPE_THRESHOLD / 2, pointerId: 1 });
+
+      expect((card.querySelector(".tint-like") as HTMLElement).style.opacity).toBe("0.5");
+      expect((card.querySelector(".tint-nope") as HTMLElement).style.opacity).toBe("0");
+    });
+
+    it("goes away again when a short drag snaps back", () => {
+      const { card } = setup();
+
+      fireEvent.pointerDown(card, { clientX: 200, pointerId: 1 });
+      fireEvent.pointerMove(card, { clientX: 250, pointerId: 1 });
+      fireEvent.pointerUp(card, { clientX: 250, pointerId: 1 });
+
+      expect(opacity("LIKE")).toBe("0");
+    });
+
+    it.each([
+      ["button", "Like", "LIKE", "translateX(150%)"],
+      ["button", "Nope", "NOPE", "translateX(-150%)"],
+      ["key", "ArrowRight", "LIKE", "translateX(150%)"],
+      ["key", "ArrowLeft", "NOPE", "translateX(-150%)"],
+    ])("shows the full stamp and flies off after a %s swipe (%s)", (via, input, stamp, flyOff) => {
+      const { card } = setup();
+
+      if (via === "button") fireEvent.click(screen.getByRole("button", { name: input }));
+      else fireEvent.keyDown(window, { key: input });
+
+      expect(opacity(stamp)).toBe("1");
+      expect(card).toHaveClass("leaving");
+      expect(card.style.transform).toContain(flyOff);
+    });
+
+    it("flies off in the drag direction after a drag swipe", () => {
+      const { card } = setup();
+
+      drag(card, -SWIPE_THRESHOLD);
+
+      expect(opacity("NOPE")).toBe("1");
+      expect(card).toHaveClass("leaving");
+    });
+  });
+
   it("does nothing when disabled", () => {
     const { onSwipe, card } = setup(true);
 

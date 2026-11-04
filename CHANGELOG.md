@@ -6,6 +6,12 @@
 
 ### Added
 
+- Feel the swipe: a green LIKE and a red NOPE stamp with a matching color tint that fade in with the drag distance, the same stamp and a fly-off animation for buttons and arrow keys, and an entrance animation for the next card; the card comes back if the swipe request fails (#3)
+- Celebrations: a confetti burst and a "5 likes in a row" message on every streak of five likes (a nope starts over), and a bigger celebration on the 100th swipe ever made in the browser (counted in localStorage, so Reset does not restart it) (#3)
+- A reusable `Confetti` component, not tied to the like streak, so other celebrations such as "It's a Match!" can use it (#17)
+- `prefers-reduced-motion` support: the stamps, tint and messages stay, while the entrance, fly-off, pop and confetti are dropped; built with CSS and React only, no animation library (#3)
+- Frontend tests for the stamps, tint and fly-off, the streak and milestone logic, the confetti and the celebrations in the app (#3)
+
 - Vision 002 ("It's a Match!") from the upstream repository in `vision/002-pivot.md`, formatted with Prettier
 
 - Likes survive restarts: a SQLite implementation of `SwipeRepository` (`createSqliteSwipeRepository`, using Node's built-in `node:sqlite`, no new dependency) wired in at startup, with the file set by `DATABASE_FILE` (default `backend/data/meme-tinder.db`); the Docker image stores it in `/app/data`, a named volume in `docker-compose.yml`; the service tests now run against both repositories, plus restart tests with a real database file (#2)

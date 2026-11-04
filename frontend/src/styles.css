@@ -106,3 +106,151 @@ nav button[aria-current="page"] {
   padding: 0;
   list-style: none;
 }
+
+/* --- Feel the swipe: card entrance, stamps, tint and fly-off --- */
+
+.meme-card {
+  position: relative;
+  /* Uses the separate scale/translate properties, so it does not fight the drag transform. */
+  animation: card-enter 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.meme-card.leaving {
+  opacity: 0;
+  transition:
+    transform 0.3s ease-in,
+    opacity 0.3s ease-in;
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    scale: 0.85;
+    translate: 0 24px;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+
+.tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+.tint-like {
+  background: rgba(46, 158, 91, 0.35);
+}
+
+.tint-nope {
+  background: rgba(214, 69, 69, 0.35);
+}
+
+.stamp {
+  position: absolute;
+  top: 1.5rem;
+  padding: 0.25rem 0.75rem;
+  border: 5px solid currentColor;
+  border-radius: 10px;
+  font-size: 2.5rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  background: rgba(255, 255, 255, 0.75);
+  pointer-events: none;
+}
+
+.stamp-like {
+  left: 1.25rem;
+  color: #2e9e5b;
+  transform: rotate(-15deg);
+}
+
+.stamp-nope {
+  right: 1.25rem;
+  color: #d64545;
+  transform: rotate(15deg);
+}
+
+/* --- Celebrations --- */
+
+.celebration {
+  position: fixed;
+  left: 50%;
+  bottom: 2rem;
+  z-index: 11;
+  margin: 0;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  font-weight: 700;
+  color: #fff;
+  background: #d64545;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transform: translateX(-50%);
+  animation: celebration-pop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.celebration.milestone {
+  bottom: 50%;
+  font-size: 1.4rem;
+  background: linear-gradient(135deg, #a855f7, #d64545, #f5b700);
+}
+
+@keyframes celebration-pop {
+  from {
+    scale: 0.5;
+    opacity: 0;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -16px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  from {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  to {
+    opacity: 0.8;
+    transform: translate(var(--drift), 105vh) rotate(var(--spin));
+  }
+}
+
+/* Reduced motion: keep the stamps and tint, drop the entrance, fly-off, pop and confetti. */
+@media (prefers-reduced-motion: reduce) {
+  .meme-card,
+  .meme-card.leaving,
+  .celebration {
+    animation: none;
+    transition: none;
+  }
+
+  .confetti {
+    display: none;
+  }
+}
