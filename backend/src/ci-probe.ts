@@ -1,1 +1,1 @@
-export const probe   =  1;
+export const probe: number = "x";
