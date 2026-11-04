@@ -11,6 +11,7 @@ import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
 import { createProfileService } from "../src/profiles/service.js";
 import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
+import { createStatsService } from "../src/stats/service.js";
 import { createSwipeService } from "../src/swipes/service.js";
 
 let staticDir: string;
@@ -23,9 +24,11 @@ beforeAll(() => {
 
 afterAll(() => fs.rmSync(staticDir, { recursive: true, force: true }));
 
-const setup = (options?: { staticDir?: string }) =>
-  createApp(
-    createSwipeService(createMemeCatalog(), createInMemorySwipeRepository()),
+const setup = (options?: { staticDir?: string }) => {
+  const catalog = createMemeCatalog();
+  const swipes = createInMemorySwipeRepository();
+  return createApp(
+    createSwipeService(catalog, swipes),
     createProfileService(createInMemoryProfileRepository()),
     createCompatibilityService(createInMemorySwipeRepository(), createInMemoryProfileRepository()),
     createMatchService(
@@ -33,8 +36,10 @@ const setup = (options?: { staticDir?: string }) =>
       createInMemoryProfileRepository(),
       createInMemoryMatchRepository(),
     ),
+    createStatsService(catalog, swipes),
     options,
   );
+};
 
 describe("static frontend serving", () => {
   it("serves index.html at / and built files by path", async () => {

@@ -437,3 +437,78 @@ nav button[aria-current="page"] {
   vertical-align: middle;
   opacity: 0.8;
 }
+
+/* --- Hot or Not: love, memes per minute and Trending --- */
+
+.love-badge {
+  margin: 0;
+  padding: 0 1rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #d64545;
+}
+
+.pace {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  background: #222;
+}
+
+.trending-view .trending-period {
+  margin-top: 0;
+  color: #666;
+}
+
+.trending-view ol {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: rank;
+}
+
+.trending-view li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+  border-radius: 16px;
+  text-align: left;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  counter-increment: rank;
+}
+
+.trending-view li::before {
+  content: counter(rank);
+  width: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  text-align: center;
+  color: #d64545;
+}
+
+.trending-view img {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+}
+
+.trending-view p {
+  margin: 0;
+}
+
+.trending-caption {
+  font-weight: 600;
+}
+
+.trending-numbers {
+  font-size: 0.9rem;
+  color: #d64545;
+}

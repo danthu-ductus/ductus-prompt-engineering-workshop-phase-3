@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import type { Direction, Meme } from "./api";
+import { LoveBadge } from "./LoveBadge";
 
 /** Horizontal drag distance (in px) a release must pass to count as a swipe. */
 export const SWIPE_THRESHOLD = 100;
@@ -79,6 +80,7 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
       >
         <img src={meme.imageUrl} alt={meme.caption} draggable={false} />
         <figcaption>{meme.caption}</figcaption>
+        <LoveBadge love={meme.love} />
         <span
           className="tint tint-like"
           aria-hidden="true"

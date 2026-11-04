@@ -1,6 +1,7 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
@@ -12,6 +13,7 @@ import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createProfileService } from "../src/profiles/service.js";
 import { createSqliteProfileRepository } from "../src/profiles/sqlite-repository.js";
+import { createStatsService } from "../src/stats/service.js";
 import { createSwipeService } from "../src/swipes/service.js";
 import { createSqliteSwipeRepository } from "../src/swipes/sqlite-repository.js";
 
@@ -80,11 +82,54 @@ describe("sqlite swipe repository", () => {
   });
 });
 
+describe("swipe times in the sqlite repository", () => {
+  it("keeps who swiped what and when across a restart", () => {
+    const before = openRepository();
+    before.add("u1", { memeId: "a", direction: "like" }, 1000);
+    before.add("u2", { memeId: "a", direction: "nope" }, 2000);
+    restart();
+
+    expect(openRepository().listAll()).toEqual([
+      { userId: "u1", memeId: "a", direction: "like", createdAt: 1000 },
+      { userId: "u2", memeId: "a", direction: "nope", createdAt: 2000 },
+    ]);
+  });
+
+  it("upgrades a database from before swipes had a time and keeps its swipes", () => {
+    // The table as the first version created it, without created_at.
+    mkdirSync(dirname(file), { recursive: true });
+    const old = new DatabaseSync(file);
+    old.exec(`
+      CREATE TABLE swipes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        meme_id TEXT NOT NULL,
+        direction TEXT NOT NULL CHECK (direction IN ('like', 'nope'))
+      );
+      INSERT INTO swipes (user_id, meme_id, direction) VALUES ('u1', 'a', 'like');
+    `);
+    old.close();
+
+    const upgraded = openRepository();
+    upgraded.add("u1", { memeId: "b", direction: "nope" }, 5000);
+    restart();
+    const reopened = openRepository();
+
+    // The old swipe is kept, with time 0 so it never counts as recent. Reopening is safe.
+    expect(reopened.listByUser("u1")).toEqual([
+      { memeId: "a", direction: "like" },
+      { memeId: "b", direction: "nope" },
+    ]);
+    expect(reopened.listAll().map((swipe) => swipe.createdAt)).toEqual([0, 5000]);
+  });
+});
+
 describe("API with sqlite storage across a restart", () => {
   const catalog = createMemeCatalog();
-  const startApp = () =>
-    createApp(
-      createSwipeService(catalog, openRepository()),
+  const startApp = () => {
+    const swipes = openRepository();
+    return createApp(
+      createSwipeService(catalog, swipes),
       createProfileService(openProfileRepository()),
       createCompatibilityService(
         createInMemorySwipeRepository(),
@@ -95,7 +140,9 @@ describe("API with sqlite storage across a restart", () => {
         createInMemoryProfileRepository(),
         createInMemoryMatchRepository(),
       ),
+      createStatsService(catalog, swipes),
     );
+  };
   const memes = catalog.list();
 
   it("keeps likes after ten swipes and a restart", async () => {
@@ -155,9 +202,10 @@ describe("API with sqlite storage across a restart", () => {
 
 describe("profiles with sqlite storage across a restart", () => {
   const catalog = createMemeCatalog();
-  const startApp = () =>
-    createApp(
-      createSwipeService(catalog, openRepository()),
+  const startApp = () => {
+    const swipes = openRepository();
+    return createApp(
+      createSwipeService(catalog, swipes),
       createProfileService(openProfileRepository()),
       createCompatibilityService(
         createInMemorySwipeRepository(),
@@ -168,7 +216,9 @@ describe("profiles with sqlite storage across a restart", () => {
         createInMemoryProfileRepository(),
         createInMemoryMatchRepository(),
       ),
+      createStatsService(catalog, swipes),
     );
+  };
 
   it("keeps the profile and the likes of a user after a restart", async () => {
     const app = startApp();

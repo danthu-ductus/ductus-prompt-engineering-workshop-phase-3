@@ -8,13 +8,15 @@ import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
 import { createProfileService } from "../src/profiles/service.js";
 import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
+import { createStatsService } from "../src/stats/service.js";
 import { createSwipeService } from "../src/swipes/service.js";
 
 // Every call builds fresh state, so tests are independent.
 function setup() {
   const catalog = createMemeCatalog();
+  const swipes = createInMemorySwipeRepository();
   return createApp(
-    createSwipeService(catalog, createInMemorySwipeRepository()),
+    createSwipeService(catalog, swipes),
     createProfileService(createInMemoryProfileRepository()),
     createCompatibilityService(createInMemorySwipeRepository(), createInMemoryProfileRepository()),
     createMatchService(
@@ -22,6 +24,7 @@ function setup() {
       createInMemoryProfileRepository(),
       createInMemoryMatchRepository(),
     ),
+    createStatsService(catalog, swipes),
   );
 }
 
@@ -40,6 +43,7 @@ describe("GET /api/memes/next", () => {
       id: expect.any(String),
       caption: expect.any(String),
       imageUrl: expect.stringMatching(/\.svg$/),
+      love: { percent: null, swipes: 0 },
     });
   });
 
@@ -243,7 +247,8 @@ describe("GET /api/likes", () => {
     const res = await likes(app, "u1");
 
     expect(res.status).toBe(200);
-    expect(res.body.memes).toEqual([second]);
+    // The meme now has one swipe on it: this user's like.
+    expect(res.body.memes).toEqual([{ ...second, love: { percent: 100, swipes: 1 } }]);
   });
 
   it("returns likes in the same order every time", async () => {

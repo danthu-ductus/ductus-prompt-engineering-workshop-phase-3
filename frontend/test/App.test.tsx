@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 import { App } from "../src/App";
 
@@ -9,16 +9,21 @@ const ok = (body: unknown) => ({ ok: true, json: async () => body });
 
 const profile = { userId: "u1", nickname: "Giggly Penguin", emoji: "😎" };
 
+const noStats = { memesPerMinute: 0, trending: { period: "all-time", memes: [] } };
+
 /**
- * Installs fetchMock as fetch, except that the profile endpoint is answered separately. The
- * app loads the profile on start, and this keeps it out of the numbered calls the tests check.
+ * Installs fetchMock as fetch, except that the profile and stats endpoints are answered
+ * separately. The app loads the profile on start and refreshes the stats on a timer, and this
+ * keeps both out of the numbered calls the tests check.
  */
 function stubFetch(
   fetchMock: Mock,
   profileHandler: (init?: RequestInit) => unknown = () => ok({ profile }),
+  statsHandler: () => unknown = () => ok(noStats),
 ) {
   vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
     if (url === "/api/profile") return Promise.resolve(profileHandler(init));
+    if (url === "/api/stats") return Promise.resolve(statsHandler());
     // No new matches, so the match check never takes a response meant for another request.
     if (url === "/api/matches/check") return Promise.resolve(ok({ matches: [] }));
     return fetchMock(url, init);
@@ -273,6 +278,110 @@ describe("App", () => {
     await screen.findByRole("alert");
     const card = screen.getByRole("img", { name: first.caption }).closest("figure");
     expect(card).not.toHaveClass("leaving");
+  });
+
+  describe("Hot or Not", () => {
+    const trendingStats = {
+      memesPerMinute: 7,
+      trending: {
+        period: "hour",
+        memes: [
+          { meme: second, percent: 92, swipes: 13 },
+          { meme: first, percent: 60, swipes: 5 },
+        ],
+      },
+    };
+
+    afterEach(() => vi.useRealTimers());
+
+    it("shows how many people loved the meme on the card", async () => {
+      stubFetch(
+        vi.fn().mockResolvedValue(ok({ meme: { ...first, love: { percent: 87, swipes: 23 } } })),
+      );
+
+      render(<App />);
+
+      expect(await screen.findByText("87% loved this")).toBeInTheDocument();
+    });
+
+    it("invites the first swipe on a meme nobody has swiped", async () => {
+      stubFetch(
+        vi.fn().mockResolvedValue(ok({ meme: { ...first, love: { percent: null, swipes: 0 } } })),
+      );
+
+      render(<App />);
+
+      expect(await screen.findByText("Be the first to swipe")).toBeInTheDocument();
+    });
+
+    it("shows how many people loved each liked meme", async () => {
+      stubFetch(
+        vi
+          .fn()
+          .mockResolvedValueOnce(ok({ meme: first }))
+          .mockResolvedValueOnce(ok({ memes: [{ ...first, love: { percent: 75, swipes: 4 } }] })),
+      );
+      render(<App />);
+      await screen.findByRole("img", { name: first.caption });
+
+      fireEvent.click(screen.getByRole("button", { name: "Likes" }));
+
+      expect(await screen.findByText("75% loved this")).toBeInTheDocument();
+    });
+
+    it("shows the memes per minute of everyone", async () => {
+      stubFetch(vi.fn().mockResolvedValue(ok({ meme: first })), undefined, () => ok(trendingStats));
+
+      render(<App />);
+
+      expect(await screen.findByText(/7 memes\/min/)).toBeInTheDocument();
+    });
+
+    it("refreshes memes per minute every few seconds", async () => {
+      vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+      let current = 3;
+      stubFetch(vi.fn().mockResolvedValue(ok({ meme: first })), undefined, () =>
+        ok({ ...noStats, memesPerMinute: current }),
+      );
+      render(<App />);
+      expect(await screen.findByText(/3 memes\/min/)).toBeInTheDocument();
+
+      current = 12;
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      expect(await screen.findByText(/12 memes\/min/)).toBeInTheDocument();
+    });
+
+    it("lists the trending memes, best first, on the Trending tab", async () => {
+      stubFetch(vi.fn().mockResolvedValue(ok({ meme: first })), undefined, () => ok(trendingStats));
+      render(<App />);
+      await screen.findByRole("img", { name: first.caption });
+
+      fireEvent.click(screen.getByRole("button", { name: "Trending" }));
+
+      expect(await screen.findByRole("heading", { name: "Trending" })).toBeInTheDocument();
+      expect(screen.getByText("The most loved memes of the last hour")).toBeInTheDocument();
+      const items = screen.getAllByRole("listitem");
+      expect(items[0]).toHaveTextContent("Friday deploy");
+      expect(items[0]).toHaveTextContent("92% loved this · 13 swipes");
+      expect(items[1]).toHaveTextContent("It works on my machine");
+      expect(screen.queryByRole("button", { name: "Like" })).not.toBeInTheDocument();
+    });
+
+    it("keeps the app working when the numbers cannot be loaded", async () => {
+      stubFetch(vi.fn().mockResolvedValue(ok({ meme: first })), undefined, () => ({
+        ok: false,
+        status: 500,
+      }));
+
+      render(<App />);
+
+      expect(await screen.findByRole("img", { name: first.caption })).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(screen.queryByText(/memes\/min/)).not.toBeInTheDocument();
+    });
   });
 
   describe("likes view", () => {
