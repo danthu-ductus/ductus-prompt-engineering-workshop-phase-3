@@ -12,13 +12,19 @@ import {
   type Person,
   type Profile,
 } from "./api";
+import { celebrationFor, countLifetimeSwipe, nextStreak, type Celebration } from "./celebrations";
+import { Confetti } from "./Confetti";
 import { EmptyState } from "./EmptyState";
 import { LikesView } from "./LikesView";
 import { MemeCard } from "./MemeCard";
 import { PeopleView } from "./PeopleView";
+import { waitForFlyOut } from "./motion";
 import { ProfileView } from "./ProfileView";
 
 type View = "swipe" | "likes" | "people" | "profile";
+
+/** How long (in ms) a celebration message stays on screen. */
+const CELEBRATION_MS = 3000;
 
 export function App() {
   const [view, setView] = useState<View>("swipe");
@@ -29,6 +35,11 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [swiping, setSwiping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
+  /** The current celebration; `id` changes for every new one so the confetti plays again. */
+  const [celebration, setCelebration] = useState<(Celebration & { id: number }) | null>(null);
+  /** Changes when a swipe fails, so the card that flew off comes back. */
+  const [failedSwipes, setFailedSwipes] = useState(0);
 
   const load = useCallback(async () => {
     setError(null);
@@ -50,6 +61,12 @@ export function App() {
       setProfile(null);
     }
   }, []);
+
+  useEffect(() => {
+    if (!celebration) return;
+    const timer = setTimeout(() => setCelebration(null), CELEBRATION_MS);
+    return () => clearTimeout(timer);
+  }, [celebration]);
 
   useEffect(() => {
     // Defer the first load so no state is set synchronously in the effect (react-hooks/set-state-in-effect).
@@ -99,13 +116,23 @@ export function App() {
     setError(null);
     setSwiping(true);
     try {
-      await sendSwipe(meme.id, direction);
+      // Let the card fly off while the swipe is sent, then bring in the next one.
+      await Promise.all([sendSwipe(meme.id, direction), waitForFlyOut()]);
+      celebrate(direction);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
+      setFailedSwipes((count) => count + 1);
     } finally {
       setSwiping(false);
     }
+  }
+
+  function celebrate(direction: Direction) {
+    const newStreak = nextStreak(streak, direction);
+    setStreak(newStreak);
+    const earned = celebrationFor(countLifetimeSwipe(), newStreak);
+    if (earned) setCelebration((current) => ({ ...earned, id: (current?.id ?? 0) + 1 }));
   }
 
   async function reset() {
@@ -166,7 +193,22 @@ export function App() {
       {view === "swipe" && loading && !error && <p>Loading…</p>}
       {view === "swipe" && !loading && !error && !meme && <EmptyState onReset={reset} />}
       {view === "swipe" && meme && (
-        <MemeCard key={meme.id} meme={meme} onSwipe={swipe} disabled={swiping} />
+        <MemeCard
+          key={`${meme.id}:${failedSwipes}`}
+          meme={meme}
+          onSwipe={swipe}
+          disabled={swiping}
+        />
+      )}
+      {celebration && (
+        <>
+          <Confetti key={celebration.id} pieces={celebration.kind === "milestone" ? 150 : 60} />
+          <p role="status" className={`celebration ${celebration.kind}`}>
+            {celebration.kind === "milestone"
+              ? `🎉 ${celebration.swipes} memes swiped! You are a legend.`
+              : `🔥 ${celebration.likes} likes in a row!`}
+          </p>
+        </>
       )}
     </main>
   );

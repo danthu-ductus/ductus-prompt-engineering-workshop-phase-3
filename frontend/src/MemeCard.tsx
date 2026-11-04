@@ -14,18 +14,25 @@ interface MemeCardProps {
 export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
+  /** Set once the card is swiped: it shows the full stamp and flies off in this direction. */
+  const [leaving, setLeaving] = useState<Direction | null>(null);
   const startX = useRef(0);
+
+  function swipe(direction: Direction) {
+    setLeaving(direction);
+    onSwipe(direction);
+  }
 
   useEffect(() => {
     if (disabled) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-      if (event.key === "ArrowRight") onSwipe("like");
-      if (event.key === "ArrowLeft") onSwipe("nope");
+      if (event.key === "ArrowRight") swipe("like");
+      if (event.key === "ArrowLeft") swipe("nope");
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [disabled, onSwipe]);
+  });
 
   function onPointerDown(event: PointerEvent<HTMLElement>) {
     if (disabled) return;
@@ -42,9 +49,9 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
     if (!dragging) return;
     const distance = event.clientX - startX.current;
     setDragging(false);
-    setOffset(0);
-    if (distance >= SWIPE_THRESHOLD) onSwipe("like");
-    else if (distance <= -SWIPE_THRESHOLD) onSwipe("nope");
+    if (distance >= SWIPE_THRESHOLD) swipe("like");
+    else if (distance <= -SWIPE_THRESHOLD) swipe("nope");
+    else setOffset(0);
   }
 
   function onPointerCancel() {
@@ -52,11 +59,19 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
     setOffset(0);
   }
 
+  // The stamp and tint follow the drag: invisible at rest, full strength at the swipe threshold.
+  const direction = leaving ?? (offset > 0 ? "like" : offset < 0 ? "nope" : null);
+  const strength = leaving ? 1 : Math.min(Math.abs(offset) / SWIPE_THRESHOLD, 1);
+  const opacityFor = (stamp: Direction) => (direction === stamp ? strength : 0);
+  const transform = leaving
+    ? `translateX(${leaving === "like" ? 150 : -150}%) rotate(${leaving === "like" ? 30 : -30}deg)`
+    : `translateX(${offset}px) rotate(${offset / 20}deg)`;
+
   return (
     <>
       <figure
-        className={`meme-card${dragging ? " dragging" : ""}`}
-        style={{ transform: `translateX(${offset}px) rotate(${offset / 20}deg)` }}
+        className={`meme-card${dragging ? " dragging" : ""}${leaving ? " leaving" : ""}`}
+        style={{ transform }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -64,12 +79,36 @@ export function MemeCard({ meme, onSwipe, disabled = false }: MemeCardProps) {
       >
         <img src={meme.imageUrl} alt={meme.caption} draggable={false} />
         <figcaption>{meme.caption}</figcaption>
+        <span
+          className="tint tint-like"
+          aria-hidden="true"
+          style={{ opacity: opacityFor("like") }}
+        />
+        <span
+          className="tint tint-nope"
+          aria-hidden="true"
+          style={{ opacity: opacityFor("nope") }}
+        />
+        <span
+          className="stamp stamp-like"
+          aria-hidden="true"
+          style={{ opacity: opacityFor("like") }}
+        >
+          LIKE
+        </span>
+        <span
+          className="stamp stamp-nope"
+          aria-hidden="true"
+          style={{ opacity: opacityFor("nope") }}
+        >
+          NOPE
+        </span>
       </figure>
       <div className="actions">
-        <button type="button" className="nope" disabled={disabled} onClick={() => onSwipe("nope")}>
+        <button type="button" className="nope" disabled={disabled} onClick={() => swipe("nope")}>
           Nope
         </button>
-        <button type="button" className="like" disabled={disabled} onClick={() => onSwipe("like")}>
+        <button type="button" className="like" disabled={disabled} onClick={() => swipe("like")}>
           Like
         </button>
       </div>

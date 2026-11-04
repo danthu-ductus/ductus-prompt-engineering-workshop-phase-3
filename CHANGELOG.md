@@ -8,6 +8,11 @@
 
 - Compatibility score and People like you (#13): `GET /api/people` lists every other user with a compatibility score, best match first, built by a new compatibility service (`createCompatibilityService`). The score is the percentage of memes both swiped where they made the same choice, and needs at least 5 memes swiped by both (below that the list shows how many more are needed). A People tab shows "You and Sara are 91% compatible!". Other users appear with a public hash id, nickname and emoji only, never their user id or swipes. `ProfileRepository` gets `list()`
 
+- Feel the swipe: a green LIKE and a red NOPE stamp with a matching color tint that fade in with the drag distance, the same stamp and a fly-off animation for buttons and arrow keys, and an entrance animation for the next card; the card comes back if the swipe request fails (#3)
+- Celebrations: a confetti burst and a "5 likes in a row" message on every streak of five likes (a nope starts over), and a bigger celebration on the 100th swipe ever made in the browser (counted in localStorage, so Reset does not restart it) (#3)
+- A reusable `Confetti` component, not tied to the like streak, so other celebrations such as "It's a Match!" can use it (#17)
+- `prefers-reduced-motion` support: the stamps, tint and messages stay, while the entrance, fly-off, pop and confetti are dropped; built with CSS and React only, no animation library (#3)
+- Frontend tests for the stamps, tint and fly-off, the streak and milestone logic, the confetti and the celebrations in the app (#3)
 - Profiles (#11): every user has a nickname and an emoji, stored in SQLite next to the swipes and keyed by the same user id, so existing users keep all swipes and likes. A user without a profile gets a generated nickname and a random emoji on first use. `GET /api/profile` and `PUT /api/profile` (nickname required, trimmed, at most 30 characters; exactly one emoji; `400` otherwise), `createProfileService` with a `ProfileRepository` (in-memory and SQLite), a Profile view to change both, and the profile shown in the app header
 - Server error messages (`{ "error": "..." }`) are shown by the frontend instead of only the HTTP status
 
