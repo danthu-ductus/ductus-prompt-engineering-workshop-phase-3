@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  checkMatches,
   fetchLikes,
   fetchNextMeme,
   fetchPeople,
@@ -8,6 +9,7 @@ import {
   sendSwipe,
   updateProfile,
   type Direction,
+  type Match,
   type Meme,
   type Person,
   type Profile,
@@ -16,6 +18,7 @@ import { celebrationFor, countLifetimeSwipe, nextStreak, type Celebration } from
 import { Confetti } from "./Confetti";
 import { EmptyState } from "./EmptyState";
 import { LikesView } from "./LikesView";
+import { MatchCelebration } from "./MatchCelebration";
 import { MemeCard } from "./MemeCard";
 import { PeopleView } from "./PeopleView";
 import { waitForFlyOut } from "./motion";
@@ -25,6 +28,9 @@ type View = "swipe" | "likes" | "people" | "profile";
 
 /** How long (in ms) a celebration message stays on screen. */
 const CELEBRATION_MS = 3000;
+
+/** How often (in ms) the app asks for new matches, so the other person of a pair sees theirs soon. */
+const MATCH_CHECK_MS = 10_000;
 
 export function App() {
   const [view, setView] = useState<View>("swipe");
@@ -40,6 +46,8 @@ export function App() {
   const [celebration, setCelebration] = useState<(Celebration & { id: number }) | null>(null);
   /** Changes when a swipe fails, so the card that flew off comes back. */
   const [failedSwipes, setFailedSwipes] = useState(0);
+  /** New matches waiting to be celebrated, one after the other. */
+  const [matches, setMatches] = useState<Match[]>([]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -61,6 +69,22 @@ export function App() {
       setProfile(null);
     }
   }, []);
+
+  // A failed check is ignored: the next one (after a swipe or on the timer) tries again.
+  const checkForMatches = useCallback(async () => {
+    try {
+      const found = await checkMatches();
+      if (found.length > 0) setMatches((queue) => [...queue, ...found]);
+    } catch {
+      // Try again at the next check.
+    }
+  }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(checkForMatches);
+    const timer = setInterval(() => void checkForMatches(), MATCH_CHECK_MS);
+    return () => clearInterval(timer);
+  }, [checkForMatches]);
 
   useEffect(() => {
     if (!celebration) return;
@@ -120,6 +144,7 @@ export function App() {
       await Promise.all([sendSwipe(meme.id, direction), waitForFlyOut()]);
       celebrate(direction);
       await load();
+      void checkForMatches();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
       setFailedSwipes((count) => count + 1);
@@ -197,7 +222,14 @@ export function App() {
           key={`${meme.id}:${failedSwipes}`}
           meme={meme}
           onSwipe={swipe}
-          disabled={swiping}
+          disabled={swiping || matches.length > 0}
+        />
+      )}
+      {matches[0] && (
+        <MatchCelebration
+          key={matches[0].id}
+          match={matches[0]}
+          onClose={() => setMatches((queue) => queue.slice(1))}
         />
       )}
       {celebration && (

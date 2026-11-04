@@ -2,6 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CompatibilityService } from "./compatibility/service.js";
+import type { MatchService } from "./matches/service.js";
 import { IMAGE_PATH } from "./memes/catalog.js";
 import { DIRECTIONS, type Direction } from "./swipes/repository.js";
 import { InvalidProfileError, type ProfileService } from "./profiles/service.js";
@@ -32,6 +33,7 @@ export function createApp(
   swipeService: SwipeService,
   profileService: ProfileService,
   compatibilityService: CompatibilityService,
+  matchService: MatchService,
   options: AppOptions = {},
 ) {
   const app = express();
@@ -118,6 +120,15 @@ export function createApp(
     const userId = requireUserId(req, res);
     if (!userId) return;
     res.json({ people: compatibilityService.listPeople(userId) });
+  });
+
+  // 200 with { matches }: the user's new matches (compatibility of at least 70% with enough shared
+  // memes) that they have not seen yet. A POST because it records that the user has seen them, so
+  // each match is returned once per person.
+  app.post("/api/matches/check", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    res.json({ matches: matchService.takeNewMatches(userId) });
   });
 
   // Built frontend (production only). Registered after the API routes and never answers /api paths.

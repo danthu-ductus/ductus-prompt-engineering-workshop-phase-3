@@ -1,6 +1,8 @@
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 import { createCompatibilityService } from "./compatibility/service.js";
+import { createSqliteMatchRepository } from "./matches/sqlite-repository.js";
+import { createMatchService } from "./matches/service.js";
 import { createMemeCatalog } from "./memes/catalog.js";
 import { createProfileService } from "./profiles/service.js";
 import { createSqliteProfileRepository } from "./profiles/sqlite-repository.js";
@@ -20,11 +22,19 @@ const swipeService = createSwipeService(createMemeCatalog(), swipeRepository);
 
 const profileService = createProfileService(profileRepository);
 const compatibilityService = createCompatibilityService(swipeRepository, profileRepository);
+const matchService = createMatchService(
+  swipeRepository,
+  profileRepository,
+  createSqliteMatchRepository(databaseFile),
+);
 
 // Set STATIC_DIR to the built frontend (frontend/dist) to serve it from this process, as the container does.
 const staticDir = process.env.STATIC_DIR;
 
-createApp(swipeService, profileService, compatibilityService, { staticDir }).listen(port, () => {
-  console.log(`Backend listening on http://localhost:${port}`);
-  console.log(`Swipes are stored in ${databaseFile}`);
-});
+createApp(swipeService, profileService, compatibilityService, matchService, { staticDir }).listen(
+  port,
+  () => {
+    console.log(`Backend listening on http://localhost:${port}`);
+    console.log(`Swipes are stored in ${databaseFile}`);
+  },
+);

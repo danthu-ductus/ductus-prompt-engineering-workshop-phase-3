@@ -6,6 +6,8 @@
 
 ### Added
 
+- It's a Match! (#17): two users match at a compatibility score of at least 70% with at least 5 memes swiped by both. `POST /api/matches/check` finds new matches, stores each once per pair in SQLite (so it survives restarts and is never made twice, even when the score drops later), and returns it once to each of the two people. The app checks after every swipe, on start and every 10 seconds, and shows a full-screen "It's a Match!" with both nicknames, confetti (the reusable `Confetti`), a short jingle that stays silent when audio is blocked, and Escape or "Keep swiping" to close. Respects `prefers-reduced-motion`
+
 - Compatibility score and People like you (#13): `GET /api/people` lists every other user with a compatibility score, best match first, built by a new compatibility service (`createCompatibilityService`). The score is the percentage of memes both swiped where they made the same choice, and needs at least 5 memes swiped by both (below that the list shows how many more are needed). A People tab shows "You and Sara are 91% compatible!". Other users appear with a public hash id, nickname and emoji only, never their user id or swipes. `ProfileRepository` gets `list()`
 
 - Feel the swipe: a green LIKE and a red NOPE stamp with a matching color tint that fade in with the drag distance, the same stamp and a fly-off animation for buttons and arrow keys, and an entrance animation for the next card; the card comes back if the swipe request fails (#3)
@@ -56,6 +58,7 @@
 
 ### Changed
 
+- `createApp` now takes a match service as its fourth argument (#17)
 - `createApp` now takes a compatibility service as its third argument (#13)
 - `createApp` now takes a profile service as its second argument (#11)
 - All existing code and docs reformatted with Prettier, and the two existing lint errors fixed (the first meme load is deferred out of the effect body in `App.tsx`) (#1)

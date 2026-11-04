@@ -17,9 +17,12 @@ function stubFetch(
   fetchMock: Mock,
   profileHandler: (init?: RequestInit) => unknown = () => ok({ profile }),
 ) {
-  vi.stubGlobal("fetch", (url: string, init?: RequestInit) =>
-    url === "/api/profile" ? Promise.resolve(profileHandler(init)) : fetchMock(url, init),
-  );
+  vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
+    if (url === "/api/profile") return Promise.resolve(profileHandler(init));
+    // No new matches, so the match check never takes a response meant for another request.
+    if (url === "/api/matches/check") return Promise.resolve(ok({ matches: [] }));
+    return fetchMock(url, init);
+  });
 }
 
 afterEach(() => {
