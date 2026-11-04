@@ -1,9 +1,19 @@
 import { getUserId } from "./identity";
 
+/** How much all users love a meme: the share of the swipes on it that were likes. */
+export interface Love {
+  /** Percentage (0-100), or null when nobody has swiped the meme yet. */
+  percent: number | null;
+  /** How many swipes the percentage is based on. */
+  swipes: number;
+}
+
 export interface Meme {
   id: string;
   caption: string;
   imageUrl: string;
+  /** Missing when the backend does not send it. */
+  love?: Love;
 }
 
 export type Direction = "like" | "nope";
@@ -108,6 +118,29 @@ export interface Match {
   /** The compatibility percentage when the match was made. */
   score: number;
   sharedCount: number;
+}
+
+export interface TrendingMeme {
+  meme: Meme;
+  swipes: number;
+  /** Percentage (0-100) of the swipes in the period that were likes. */
+  percent: number;
+}
+
+/** The Hot or Not numbers across all users. */
+export interface Stats {
+  /** Swipes by everyone in the last minute. */
+  memesPerMinute: number;
+  trending: {
+    /** "all-time" when the last hour had too little data. */
+    period: "hour" | "all-time";
+    /** Best first. Can be empty. */
+    memes: TrendingMeme[];
+  };
+}
+
+export async function fetchStats(): Promise<Stats> {
+  return request<Stats>("/api/stats");
 }
 
 /** Checks for new matches. Each match is returned once, so call it often but show what it returns. */

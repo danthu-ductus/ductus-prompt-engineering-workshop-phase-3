@@ -5,6 +5,7 @@ import {
   fetchNextMeme,
   fetchPeople,
   fetchProfile,
+  fetchStats,
   resetSwipes,
   sendSwipe,
   updateProfile,
@@ -13,6 +14,7 @@ import {
   type Meme,
   type Person,
   type Profile,
+  type Stats,
 } from "./api";
 import { celebrationFor, countLifetimeSwipe, nextStreak, type Celebration } from "./celebrations";
 import { Confetti } from "./Confetti";
@@ -20,17 +22,22 @@ import { EmptyState } from "./EmptyState";
 import { LikesView } from "./LikesView";
 import { MatchCelebration } from "./MatchCelebration";
 import { MemeCard } from "./MemeCard";
+import { PaceCounter } from "./PaceCounter";
 import { PeopleView } from "./PeopleView";
 import { waitForFlyOut } from "./motion";
 import { ProfileView } from "./ProfileView";
+import { TrendingView } from "./TrendingView";
 
-type View = "swipe" | "likes" | "people" | "profile";
+type View = "swipe" | "likes" | "trending" | "people" | "profile";
 
 /** How long (in ms) a celebration message stays on screen. */
 const CELEBRATION_MS = 3000;
 
 /** How often (in ms) the app asks for new matches, so the other person of a pair sees theirs soon. */
 const MATCH_CHECK_MS = 10_000;
+
+/** How often (in ms) the Hot or Not numbers (memes per minute, Trending) are refreshed. */
+const STATS_REFRESH_MS = 5000;
 
 export function App() {
   const [view, setView] = useState<View>("swipe");
@@ -48,6 +55,7 @@ export function App() {
   const [failedSwipes, setFailedSwipes] = useState(0);
   /** New matches waiting to be celebrated, one after the other. */
   const [matches, setMatches] = useState<Match[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -70,6 +78,16 @@ export function App() {
     }
   }, []);
 
+  // The numbers only decorate the app, so a failed refresh keeps the last ones and the next
+  // refresh tries again.
+  const loadStats = useCallback(async () => {
+    try {
+      setStats(await fetchStats());
+    } catch {
+      // Keep showing the last numbers.
+    }
+  }, []);
+
   // A failed check is ignored: the next one (after a swipe or on the timer) tries again.
   const checkForMatches = useCallback(async () => {
     try {
@@ -87,6 +105,12 @@ export function App() {
   }, [checkForMatches]);
 
   useEffect(() => {
+    void Promise.resolve().then(loadStats);
+    const timer = setInterval(() => void loadStats(), STATS_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [loadStats]);
+
+  useEffect(() => {
     if (!celebration) return;
     const timer = setTimeout(() => setCelebration(null), CELEBRATION_MS);
     return () => clearTimeout(timer);
@@ -97,6 +121,12 @@ export function App() {
     void Promise.resolve().then(load);
     void Promise.resolve().then(loadProfile);
   }, [load, loadProfile]);
+
+  function showTrending() {
+    setView("trending");
+    setError(null);
+    void loadStats();
+  }
 
   async function showPeople() {
     setView("people");
@@ -196,6 +226,13 @@ export function App() {
         </button>
         <button
           type="button"
+          aria-current={view === "trending" ? "page" : undefined}
+          onClick={showTrending}
+        >
+          Trending
+        </button>
+        <button
+          type="button"
           aria-current={view === "people" ? "page" : undefined}
           onClick={showPeople}
         >
@@ -209,8 +246,12 @@ export function App() {
           Profile
         </button>
       </nav>
+      {stats && <PaceCounter memesPerMinute={stats.memesPerMinute} />}
       {error && <p role="alert">Something went wrong: {error}. Is the backend running?</p>}
       {view === "likes" && !error && (likes ? <LikesView memes={likes} /> : <p>Loading…</p>)}
+      {view === "trending" &&
+        !error &&
+        (stats ? <TrendingView trending={stats.trending} /> : <p>Loading…</p>)}
       {view === "people" && !error && (people ? <PeopleView people={people} /> : <p>Loading…</p>)}
       {view === "profile" &&
         !error &&

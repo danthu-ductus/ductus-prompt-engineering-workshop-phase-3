@@ -3,6 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CompatibilityService } from "./compatibility/service.js";
 import type { MatchService } from "./matches/service.js";
+import type { Meme } from "./memes/catalog.js";
+import type { StatsService } from "./stats/service.js";
 import { isDemoUserId } from "./demo/personas.js";
 import { IMAGE_PATH } from "./memes/catalog.js";
 import { DIRECTIONS, type Direction } from "./swipes/repository.js";
@@ -40,18 +42,24 @@ export function createApp(
   profileService: ProfileService,
   compatibilityService: CompatibilityService,
   matchService: MatchService,
+  statsService: StatsService,
   options: AppOptions = {},
 ) {
   const app = express();
   app.use(express.json());
 
+  /** A meme as the API returns it: with how much users love it. */
+  const withLove = (meme: Meme) => ({ ...meme, love: statsService.loveFor(meme.id) });
+
   app.use(IMAGE_PATH, express.static(assetsDir));
 
-  // 200 with { meme }. When the user has swiped every meme, meme is null.
+  // 200 with { meme }, a meme with its love ({ percent, swipes }). When the user has swiped every
+  // meme, meme is null.
   app.get("/api/memes/next", (req, res) => {
     const userId = requireUserId(req, res);
     if (!userId) return;
-    res.json({ meme: swipeService.getNextMeme(userId) });
+    const meme = swipeService.getNextMeme(userId);
+    res.json({ meme: meme && withLove(meme) });
   });
 
   // 200 with the stored swipe. Swiping the same meme twice keeps the first swipe.
@@ -78,11 +86,11 @@ export function createApp(
     }
   });
 
-  // 200 with { memes }: the user's liked memes in catalog order, or an empty list.
+  // 200 with { memes }: the user's liked memes in catalog order (each with its love), or an empty list.
   app.get("/api/likes", (req, res) => {
     const userId = requireUserId(req, res);
     if (!userId) return;
-    res.json({ memes: swipeService.listLikedMemes(userId) });
+    res.json({ memes: swipeService.listLikedMemes(userId).map(withLove) });
   });
 
   // 204 No Content. Removes all of the user's swipes, including likes. Safe to repeat.
@@ -135,6 +143,15 @@ export function createApp(
     const userId = requireUserId(req, res);
     if (!userId) return;
     res.json({ matches: matchService.takeNewMatches(userId) });
+  });
+
+  // 200 with { memesPerMinute, trending: { period, memes } }: the Hot or Not numbers across all
+  // real users (never the demo personas). Trending is the last hour, or all time when the last
+  // hour has too little data (period says which).
+  app.get("/api/stats", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    res.json(statsService.getStats());
   });
 
   // Built frontend (production only). Registered after the API routes and never answers /api paths.
