@@ -65,13 +65,17 @@ JSON
 
 All endpoints are under `/api` and need an `X-User-Id` header (the frontend creates an anonymous id on first visit and stores it in localStorage).
 
-| Endpoint              | Description                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `GET /api/memes/next` | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped |
-| `POST /api/swipes`    | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                       |
-| `GET /api/likes`      | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)           |
-| `DELETE /api/swipes`  | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                 |
+| Endpoint              | Description                                                                                                                                                                                        |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/memes/next` | `200 { "meme": {...} }` with the next unseen meme, or `200 { "meme": null }` when all memes have been swiped                                                                                       |
+| `POST /api/swipes`    | Body `{ "memeId": "...", "direction": "like" \| "nope" }`. `200` with the stored swipe                                                                                                             |
+| `GET /api/likes`      | `200 { "memes": [...] }` with the user's liked memes in catalog order (`[]` when nothing is liked)                                                                                                 |
+| `GET /api/profile`    | `200 { "profile": { "userId", "nickname", "emoji" } }`. A user without a profile gets one with a generated nickname and a random emoji. Existing swipes and likes are kept                         |
+| `PUT /api/profile`    | Body `{ "nickname": "...", "emoji": "..." }`. `200` with the saved profile. `400` for an empty nickname (after trimming), one longer than 30 characters, or an emoji that is not exactly one emoji |
+| `DELETE /api/swipes`  | Removes all of the user's swipes, including likes. `204 No Content`; safe to call repeatedly                                                                                                       |
 
 Errors are JSON `{ "error": "..." }`: `400` for a missing user id, missing meme id or invalid direction, `404` for an unknown meme id. Swiping the same meme twice is idempotent: the first swipe is kept.
+
+Profiles are stored in the same SQLite file as the swipes (`backend/src/profiles/`). A profile uses the same user id as the swipes, so everything a user did before profiles existed stays theirs.
 
 Swipes are stored in a SQLite database file (`backend/src/swipes/sqlite-repository.ts`, using Node's built-in `node:sqlite`), so likes survive restarts. Locally the file is `backend/data/meme-tinder.db`; set `DATABASE_FILE` to change it. See [deploy/README.md](deploy/README.md) for where Docker keeps it. To use another database, implement `SwipeRepository` (`backend/src/swipes/repository.ts`) and pass it to `createSwipeService` in `backend/src/index.ts`.

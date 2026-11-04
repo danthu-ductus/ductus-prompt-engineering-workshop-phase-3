@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { IMAGE_PATH } from "./memes/catalog.js";
 import { DIRECTIONS, type Direction } from "./swipes/repository.js";
+import { InvalidProfileError, type ProfileService } from "./profiles/service.js";
 import { UnknownMemeError, type SwipeService } from "./swipes/service.js";
 
 const assetsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../assets/memes");
@@ -26,7 +27,11 @@ export interface AppOptions {
   staticDir?: string;
 }
 
-export function createApp(swipeService: SwipeService, options: AppOptions = {}) {
+export function createApp(
+  swipeService: SwipeService,
+  profileService: ProfileService,
+  options: AppOptions = {},
+) {
   const app = express();
   app.use(express.json());
 
@@ -76,6 +81,33 @@ export function createApp(swipeService: SwipeService, options: AppOptions = {}) 
     if (!userId) return;
     swipeService.resetSwipes(userId);
     res.status(204).end();
+  });
+
+  // 200 with { profile }. A user without a profile gets one (generated nickname, random emoji).
+  app.get("/api/profile", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    res.json({ profile: profileService.getProfile(userId) });
+  });
+
+  // 200 with { profile }. Body { nickname, emoji }; 400 for a missing or invalid nickname or emoji.
+  app.put("/api/profile", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    const { nickname, emoji } = req.body ?? {};
+    if (typeof nickname !== "string" || typeof emoji !== "string") {
+      res.status(400).json({ error: "nickname and emoji are required" });
+      return;
+    }
+    try {
+      res.json({ profile: profileService.updateProfile(userId, { nickname, emoji }) });
+    } catch (err) {
+      if (err instanceof InvalidProfileError) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
   });
 
   // Built frontend (production only). Registered after the API routes and never answers /api paths.
