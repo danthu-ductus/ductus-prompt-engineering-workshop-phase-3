@@ -4,6 +4,7 @@ import path from "node:path";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { createCompatibilityService } from "../src/compatibility/service.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
 import { createProfileService } from "../src/profiles/service.js";
@@ -24,6 +25,7 @@ const setup = (options?: { staticDir?: string }) =>
   createApp(
     createSwipeService(createMemeCatalog(), createInMemorySwipeRepository()),
     createProfileService(createInMemoryProfileRepository()),
+    createCompatibilityService(createInMemorySwipeRepository(), createInMemoryProfileRepository()),
     options,
   );
 

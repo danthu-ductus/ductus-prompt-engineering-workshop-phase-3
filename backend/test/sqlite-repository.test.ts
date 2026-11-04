@@ -4,6 +4,9 @@ import { join } from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { createCompatibilityService } from "../src/compatibility/service.js";
+import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
+import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createProfileService } from "../src/profiles/service.js";
 import { createSqliteProfileRepository } from "../src/profiles/sqlite-repository.js";
@@ -81,6 +84,10 @@ describe("API with sqlite storage across a restart", () => {
     createApp(
       createSwipeService(catalog, openRepository()),
       createProfileService(openProfileRepository()),
+      createCompatibilityService(
+        createInMemorySwipeRepository(),
+        createInMemoryProfileRepository(),
+      ),
     );
   const memes = catalog.list();
 
@@ -145,6 +152,10 @@ describe("profiles with sqlite storage across a restart", () => {
     createApp(
       createSwipeService(catalog, openRepository()),
       createProfileService(openProfileRepository()),
+      createCompatibilityService(
+        createInMemorySwipeRepository(),
+        createInMemoryProfileRepository(),
+      ),
     );
 
   it("keeps the profile and the likes of a user after a restart", async () => {

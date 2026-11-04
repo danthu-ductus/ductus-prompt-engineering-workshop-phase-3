@@ -76,3 +76,23 @@ export async function updateProfile(nickname: string, emoji: string): Promise<Pr
   });
   return profile;
 }
+
+/** Another user with a compatibility score. It never contains their user id or their swipes. */
+export interface Person {
+  /** A public id that is safe to show. It is not the user id. */
+  id: string;
+  nickname: string;
+  emoji: string;
+  /** How many memes both of you have swiped. */
+  sharedCount: number;
+  /** Percentage (0-100), or null until enough memes are swiped by both. */
+  score: number | null;
+  /** How many more memes you both need to swipe to get a score. */
+  memesNeeded: number;
+}
+
+/** The other users, best match first. */
+export async function fetchPeople(): Promise<Person[]> {
+  const { people } = await request<{ people: Person[] }>("/api/people");
+  return people;
+}

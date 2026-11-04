@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
+import { createCompatibilityService } from "./compatibility/service.js";
 import { createMemeCatalog } from "./memes/catalog.js";
 import { createProfileService } from "./profiles/service.js";
 import { createSqliteProfileRepository } from "./profiles/sqlite-repository.js";
@@ -13,17 +14,17 @@ const port = Number(process.env.PORT ?? 3000);
 const databaseFile =
   process.env.DATABASE_FILE ?? fileURLToPath(new URL("../data/meme-tinder.db", import.meta.url));
 
-const swipeService = createSwipeService(
-  createMemeCatalog(),
-  createSqliteSwipeRepository(databaseFile),
-);
+const swipeRepository = createSqliteSwipeRepository(databaseFile);
+const profileRepository = createSqliteProfileRepository(databaseFile);
+const swipeService = createSwipeService(createMemeCatalog(), swipeRepository);
 
-const profileService = createProfileService(createSqliteProfileRepository(databaseFile));
+const profileService = createProfileService(profileRepository);
+const compatibilityService = createCompatibilityService(swipeRepository, profileRepository);
 
 // Set STATIC_DIR to the built frontend (frontend/dist) to serve it from this process, as the container does.
 const staticDir = process.env.STATIC_DIR;
 
-createApp(swipeService, profileService, { staticDir }).listen(port, () => {
+createApp(swipeService, profileService, compatibilityService, { staticDir }).listen(port, () => {
   console.log(`Backend listening on http://localhost:${port}`);
   console.log(`Swipes are stored in ${databaseFile}`);
 });

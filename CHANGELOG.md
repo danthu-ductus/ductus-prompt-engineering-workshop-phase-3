@@ -6,6 +6,8 @@
 
 ### Added
 
+- Compatibility score and People like you (#13): `GET /api/people` lists every other user with a compatibility score, best match first, built by a new compatibility service (`createCompatibilityService`). The score is the percentage of memes both swiped where they made the same choice, and needs at least 5 memes swiped by both (below that the list shows how many more are needed). A People tab shows "You and Sara are 91% compatible!". Other users appear with a public hash id, nickname and emoji only, never their user id or swipes. `ProfileRepository` gets `list()`
+
 - Profiles (#11): every user has a nickname and an emoji, stored in SQLite next to the swipes and keyed by the same user id, so existing users keep all swipes and likes. A user without a profile gets a generated nickname and a random emoji on first use. `GET /api/profile` and `PUT /api/profile` (nickname required, trimmed, at most 30 characters; exactly one emoji; `400` otherwise), `createProfileService` with a `ProfileRepository` (in-memory and SQLite), a Profile view to change both, and the profile shown in the app header
 - Server error messages (`{ "error": "..." }`) are shown by the frontend instead of only the HTTP status
 
@@ -49,6 +51,7 @@
 
 ### Changed
 
+- `createApp` now takes a compatibility service as its third argument (#13)
 - `createApp` now takes a profile service as its second argument (#11)
 - All existing code and docs reformatted with Prettier, and the two existing lint errors fixed (the first meme load is deferred out of the effect body in `App.tsx`) (#1)
 - The CI job (and so the required status check on `main`) is named `ci`, matching the branch protection rule (#1)
