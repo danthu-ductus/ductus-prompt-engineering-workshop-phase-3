@@ -11,6 +11,8 @@
 - A reusable `Confetti` component, not tied to the like streak, so other celebrations such as "It's a Match!" can use it (#17)
 - `prefers-reduced-motion` support: the stamps, tint and messages stay, while the entrance, fly-off, pop and confetti are dropped; built with CSS and React only, no animation library (#3)
 - Frontend tests for the stamps, tint and fly-off, the streak and milestone logic, the confetti and the celebrations in the app (#3)
+- Profiles (#11): every user has a nickname and an emoji, stored in SQLite next to the swipes and keyed by the same user id, so existing users keep all swipes and likes. A user without a profile gets a generated nickname and a random emoji on first use. `GET /api/profile` and `PUT /api/profile` (nickname required, trimmed, at most 30 characters; exactly one emoji; `400` otherwise), `createProfileService` with a `ProfileRepository` (in-memory and SQLite), a Profile view to change both, and the profile shown in the app header
+- Server error messages (`{ "error": "..." }`) are shown by the frontend instead of only the HTTP status
 
 - Vision 002 ("It's a Match!") from the upstream repository in `vision/002-pivot.md`, formatted with Prettier
 
@@ -52,6 +54,7 @@
 
 ### Changed
 
+- `createApp` now takes a profile service as its second argument (#11)
 - All existing code and docs reformatted with Prettier, and the two existing lint errors fixed (the first meme load is deferred out of the effect body in `App.tsx`) (#1)
 - The CI job (and so the required status check on `main`) is named `ci`, matching the branch protection rule (#1)
 - `MemeCard` now takes `onSwipe(direction)` and owns the Like and Nope buttons, which moved out of `App`; buttons are disabled while a swipe request is in flight (#7)

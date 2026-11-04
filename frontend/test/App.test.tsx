@@ -1,11 +1,26 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 import { App } from "../src/App";
 
 const first = { id: "m1", caption: "It works on my machine", imageUrl: "/api/memes/images/m1.svg" };
 const second = { id: "m2", caption: "Friday deploy", imageUrl: "/api/memes/images/m2.svg" };
 
 const ok = (body: unknown) => ({ ok: true, json: async () => body });
+
+const profile = { userId: "u1", nickname: "Giggly Penguin", emoji: "😎" };
+
+/**
+ * Installs fetchMock as fetch, except that the profile endpoint is answered separately. The
+ * app loads the profile on start, and this keeps it out of the numbered calls the tests check.
+ */
+function stubFetch(
+  fetchMock: Mock,
+  profileHandler: (init?: RequestInit) => unknown = () => ok({ profile }),
+) {
+  vi.stubGlobal("fetch", (url: string, init?: RequestInit) =>
+    url === "/api/profile" ? Promise.resolve(profileHandler(init)) : fetchMock(url, init),
+  );
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -18,7 +33,7 @@ function fakeBackend(memes: { id: string; caption: string; imageUrl: string }[])
   const fetchMock = vi.fn(async (_url: string, init: RequestInit = {}) =>
     init.method === "POST" ? ok({}) : ok({ meme: memes[served++] ?? null }),
   );
-  vi.stubGlobal("fetch", fetchMock);
+  stubFetch(fetchMock);
   return fetchMock;
 }
 
@@ -31,7 +46,7 @@ const manyMemes = (count: number) =>
 
 describe("App", () => {
   it("shows the meme returned by the backend", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: first })));
+    stubFetch(vi.fn().mockResolvedValue(ok({ meme: first })));
 
     render(<App />);
 
@@ -48,7 +63,7 @@ describe("App", () => {
       .mockResolvedValueOnce(ok({ meme: first }))
       .mockResolvedValueOnce(ok({ memeId: first.id, direction }))
       .mockResolvedValueOnce(ok({ meme: second }));
-    vi.stubGlobal("fetch", fetchMock);
+    stubFetch(fetchMock);
     render(<App />);
     await screen.findByRole("img", { name: first.caption });
 
@@ -69,7 +84,7 @@ describe("App", () => {
       .mockResolvedValueOnce(ok({ memeId: first.id, direction: "like" }))
       .mockResolvedValueOnce(ok({ meme: second }))
       .mockResolvedValueOnce(ok({ memes: [] }));
-    vi.stubGlobal("fetch", fetchMock);
+    stubFetch(fetchMock);
     render(<App />);
     await screen.findByRole("img", { name: first.caption });
 
@@ -93,7 +108,7 @@ describe("App", () => {
       .mockResolvedValueOnce(ok({ meme: first }))
       .mockReturnValueOnce(new Promise((resolve) => (finish = resolve)))
       .mockResolvedValueOnce(ok({ meme: second }));
-    vi.stubGlobal("fetch", fetchMock);
+    stubFetch(fetchMock);
     render(<App />);
     await screen.findByRole("img", { name: first.caption });
 
@@ -106,7 +121,7 @@ describe("App", () => {
   });
 
   it("shows the empty state with a Reset button when there are no more memes", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(ok({ meme: null })));
+    stubFetch(vi.fn().mockResolvedValue(ok({ meme: null })));
 
     render(<App />);
 
@@ -121,7 +136,7 @@ describe("App", () => {
       .mockResolvedValueOnce(ok({ meme: null }))
       .mockResolvedValueOnce({ ok: true, status: 204 })
       .mockResolvedValueOnce(ok({ meme: first }));
-    vi.stubGlobal("fetch", fetchMock);
+    stubFetch(fetchMock);
     render(<App />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Reset" }));
@@ -135,8 +150,7 @@ describe("App", () => {
   });
 
   it("shows an error message when the reset fails", async () => {
-    vi.stubGlobal(
-      "fetch",
+    stubFetch(
       vi
         .fn()
         .mockResolvedValueOnce(ok({ meme: null }))
@@ -150,7 +164,7 @@ describe("App", () => {
   });
 
   it("shows an error message when the backend fails", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    stubFetch(vi.fn().mockResolvedValue({ ok: false, status: 500 }));
 
     render(<App />);
 
@@ -158,7 +172,7 @@ describe("App", () => {
   });
 
   it("shows an error message when the backend is unreachable", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    stubFetch(vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 
     render(<App />);
 
@@ -166,8 +180,7 @@ describe("App", () => {
   });
 
   it("shows an error message when recording a swipe fails", async () => {
-    vi.stubGlobal(
-      "fetch",
+    stubFetch(
       vi
         .fn()
         .mockResolvedValueOnce(ok({ meme: first }))
@@ -243,8 +256,7 @@ describe("App", () => {
   });
 
   it("brings the card back when a swipe fails", async () => {
-    vi.stubGlobal(
-      "fetch",
+    stubFetch(
       vi
         .fn()
         .mockResolvedValueOnce(ok({ meme: first }))
@@ -266,7 +278,7 @@ describe("App", () => {
         .fn()
         .mockResolvedValueOnce(ok({ meme: first }))
         .mockResolvedValueOnce(ok({ memes: [first, second] }));
-      vi.stubGlobal("fetch", fetchMock);
+      stubFetch(fetchMock);
       render(<App />);
       await screen.findByRole("img", { name: first.caption });
 
@@ -284,8 +296,7 @@ describe("App", () => {
     });
 
     it("shows an empty message when nothing is liked", async () => {
-      vi.stubGlobal(
-        "fetch",
+      stubFetch(
         vi
           .fn()
           .mockResolvedValueOnce(ok({ meme: first }))
@@ -300,8 +311,7 @@ describe("App", () => {
     });
 
     it("navigates back to the swipe view", async () => {
-      vi.stubGlobal(
-        "fetch",
+      stubFetch(
         vi
           .fn()
           .mockResolvedValueOnce(ok({ meme: first }))
@@ -321,8 +331,7 @@ describe("App", () => {
     });
 
     it("shows an error message when loading likes fails", async () => {
-      vi.stubGlobal(
-        "fetch",
+      stubFetch(
         vi
           .fn()
           .mockResolvedValueOnce(ok({ meme: first }))
@@ -335,6 +344,114 @@ describe("App", () => {
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong");
       expect(screen.queryByText("You have not liked any memes yet.")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("profile", () => {
+    const memeMock = () => vi.fn().mockResolvedValue(ok({ meme: first }));
+
+    it("shows the nickname and emoji in the header", async () => {
+      stubFetch(memeMock());
+
+      render(<App />);
+
+      expect(await screen.findByLabelText("Signed in as")).toHaveTextContent("😎 Giggly Penguin");
+    });
+
+    it("keeps working without a profile when the profile request fails", async () => {
+      stubFetch(memeMock(), () => ({ ok: false, status: 500 }));
+
+      render(<App />);
+
+      expect(await screen.findByRole("img", { name: first.caption })).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Signed in as")).not.toBeInTheDocument();
+    });
+
+    it("asks for the profile again when the Profile view is opened without one", async () => {
+      const profileHandler = vi
+        .fn()
+        .mockReturnValueOnce({ ok: false, status: 500 })
+        .mockReturnValue(ok({ profile }));
+      stubFetch(memeMock(), profileHandler);
+      render(<App />);
+      await screen.findByRole("img", { name: first.caption });
+
+      fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+
+      expect(await screen.findByRole("heading", { name: "Your profile" })).toBeInTheDocument();
+      expect(screen.getByLabelText("Nickname")).toHaveValue("Giggly Penguin");
+    });
+
+    it("saves a new nickname and emoji and updates the header", async () => {
+      const saved = { userId: "u1", nickname: "Sara", emoji: "🦄" };
+      const profileHandler = vi.fn((init?: RequestInit) =>
+        init?.method === "PUT" ? ok({ profile: saved }) : ok({ profile }),
+      );
+      stubFetch(memeMock(), profileHandler);
+      render(<App />);
+      await screen.findByRole("img", { name: first.caption });
+      fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+      await screen.findByRole("heading", { name: "Your profile" });
+
+      fireEvent.change(screen.getByLabelText("Nickname"), { target: { value: "Sara" } });
+      fireEvent.click(screen.getByRole("button", { name: "🦄" }));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(await screen.findByRole("status")).toHaveTextContent("Saved");
+      expect(screen.getByLabelText("Signed in as")).toHaveTextContent("🦄 Sara");
+      const put = profileHandler.mock.calls.map(([init]) => init).find((i) => i?.method === "PUT");
+      expect(JSON.parse(String(put?.body))).toEqual({ nickname: "Sara", emoji: "🦄" });
+      expect(put?.headers).toMatchObject({ "X-User-Id": expect.any(String) });
+    });
+
+    it("shows the message from the API when saving is rejected", async () => {
+      const profileHandler = (init?: RequestInit) =>
+        init?.method === "PUT"
+          ? {
+              ok: false,
+              status: 400,
+              json: async () => ({ error: "emoji must be a single emoji" }),
+            }
+          : ok({ profile });
+      stubFetch(memeMock(), profileHandler);
+      render(<App />);
+      await screen.findByRole("img", { name: first.caption });
+      fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+      await screen.findByRole("heading", { name: "Your profile" });
+
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Could not save: emoji must be a single emoji",
+      );
+      expect(screen.getByLabelText("Signed in as")).toHaveTextContent("😎 Giggly Penguin");
+    });
+
+    it("navigates back to the swipe view", async () => {
+      stubFetch(memeMock());
+      render(<App />);
+      await screen.findByRole("img", { name: first.caption });
+      fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+      await screen.findByRole("heading", { name: "Your profile" });
+
+      fireEvent.click(screen.getByRole("button", { name: "Swipe" }));
+
+      expect(await screen.findByRole("img", { name: first.caption })).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Your profile" })).not.toBeInTheDocument();
+    });
+
+    it("does not swipe with the arrow keys in the profile view", async () => {
+      const fetchMock = memeMock();
+      stubFetch(fetchMock);
+      render(<App />);
+      await screen.findByRole("img", { name: first.caption });
+      fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+      await screen.findByRole("heading", { name: "Your profile" });
+
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
   });
 });

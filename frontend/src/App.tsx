@@ -2,10 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import {
   fetchLikes,
   fetchNextMeme,
+  fetchProfile,
   resetSwipes,
   sendSwipe,
+  updateProfile,
   type Direction,
   type Meme,
+  type Profile,
 } from "./api";
 import { celebrationFor, countLifetimeSwipe, nextStreak, type Celebration } from "./celebrations";
 import { Confetti } from "./Confetti";
@@ -13,8 +16,9 @@ import { EmptyState } from "./EmptyState";
 import { LikesView } from "./LikesView";
 import { MemeCard } from "./MemeCard";
 import { waitForFlyOut } from "./motion";
+import { ProfileView } from "./ProfileView";
 
-type View = "swipe" | "likes";
+type View = "swipe" | "likes" | "profile";
 
 /** How long (in ms) a celebration message stays on screen. */
 const CELEBRATION_MS = 3000;
@@ -23,6 +27,7 @@ export function App() {
   const [view, setView] = useState<View>("swipe");
   const [meme, setMeme] = useState<Meme | null>(null);
   const [likes, setLikes] = useState<Meme[] | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [swiping, setSwiping] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +48,16 @@ export function App() {
     }
   }, []);
 
+  // The profile only decorates the app, so a failure leaves the header empty instead of showing
+  // an error. The meme request reports an unreachable backend.
+  const loadProfile = useCallback(async () => {
+    try {
+      setProfile(await fetchProfile());
+    } catch {
+      setProfile(null);
+    }
+  }, []);
+
   useEffect(() => {
     if (!celebration) return;
     const timer = setTimeout(() => setCelebration(null), CELEBRATION_MS);
@@ -52,7 +67,18 @@ export function App() {
   useEffect(() => {
     // Defer the first load so no state is set synchronously in the effect (react-hooks/set-state-in-effect).
     void Promise.resolve().then(load);
-  }, [load]);
+    void Promise.resolve().then(loadProfile);
+  }, [load, loadProfile]);
+
+  async function showProfile() {
+    setView("profile");
+    setError(null);
+    if (!profile) await loadProfile();
+  }
+
+  async function saveProfile(nickname: string, emoji: string) {
+    setProfile(await updateProfile(nickname, emoji));
+  }
 
   async function showLikes() {
     setView("likes");
@@ -108,6 +134,11 @@ export function App() {
   return (
     <main>
       <h1>Meme-Tinder</h1>
+      {profile && (
+        <p className="profile-badge" aria-label="Signed in as">
+          <span aria-hidden="true">{profile.emoji}</span> {profile.nickname}
+        </p>
+      )}
       <nav>
         <button
           type="button"
@@ -123,9 +154,19 @@ export function App() {
         >
           Likes
         </button>
+        <button
+          type="button"
+          aria-current={view === "profile" ? "page" : undefined}
+          onClick={showProfile}
+        >
+          Profile
+        </button>
       </nav>
       {error && <p role="alert">Something went wrong: {error}. Is the backend running?</p>}
       {view === "likes" && !error && (likes ? <LikesView memes={likes} /> : <p>Loading…</p>)}
+      {view === "profile" &&
+        !error &&
+        (profile ? <ProfileView profile={profile} onSave={saveProfile} /> : <p>Loading…</p>)}
       {view === "swipe" && loading && !error && <p>Loading…</p>}
       {view === "swipe" && !loading && !error && !meme && <EmptyState onReset={reset} />}
       {view === "swipe" && meme && (

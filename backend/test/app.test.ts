@@ -2,13 +2,18 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
+import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
+import { createProfileService } from "../src/profiles/service.js";
 import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
 import { createSwipeService } from "../src/swipes/service.js";
 
 // Every call builds fresh state, so tests are independent.
 function setup() {
   const catalog = createMemeCatalog();
-  return createApp(createSwipeService(catalog, createInMemorySwipeRepository()));
+  return createApp(
+    createSwipeService(catalog, createInMemorySwipeRepository()),
+    createProfileService(createInMemoryProfileRepository()),
+  );
 }
 
 const swipe = (app: ReturnType<typeof setup>, userId: string, body: object) =>

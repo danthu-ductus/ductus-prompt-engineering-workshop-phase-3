@@ -5,17 +5,24 @@ import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
+import { createProfileService } from "../src/profiles/service.js";
+import { createSqliteProfileRepository } from "../src/profiles/sqlite-repository.js";
 import { createSwipeService } from "../src/swipes/service.js";
 import { createSqliteSwipeRepository } from "../src/swipes/sqlite-repository.js";
-import type { SqliteSwipeRepository } from "../src/swipes/sqlite-repository.js";
 
 // These tests use a real database file and open it again to simulate a restart.
 let dir: string;
 let file: string;
-const open: SqliteSwipeRepository[] = [];
+const open: { close(): void }[] = [];
 
 function openRepository() {
   const repository = createSqliteSwipeRepository(file);
+  open.push(repository);
+  return repository;
+}
+
+function openProfileRepository() {
+  const repository = createSqliteProfileRepository(file);
   open.push(repository);
   return repository;
 }
@@ -70,7 +77,11 @@ describe("sqlite swipe repository", () => {
 
 describe("API with sqlite storage across a restart", () => {
   const catalog = createMemeCatalog();
-  const startApp = () => createApp(createSwipeService(catalog, openRepository()));
+  const startApp = () =>
+    createApp(
+      createSwipeService(catalog, openRepository()),
+      createProfileService(openProfileRepository()),
+    );
   const memes = catalog.list();
 
   it("keeps likes after ten swipes and a restart", async () => {
@@ -125,5 +136,46 @@ describe("API with sqlite storage across a restart", () => {
 
     expect(likes.body.memes).toEqual([]);
     expect(next.body.meme.id).toBe(memes[0].id);
+  });
+});
+
+describe("profiles with sqlite storage across a restart", () => {
+  const catalog = createMemeCatalog();
+  const startApp = () =>
+    createApp(
+      createSwipeService(catalog, openRepository()),
+      createProfileService(openProfileRepository()),
+    );
+
+  it("keeps the profile and the likes of a user after a restart", async () => {
+    const app = startApp();
+    const [meme] = catalog.list();
+    await request(app)
+      .post("/api/swipes")
+      .set("X-User-Id", "u1")
+      .send({ memeId: meme.id, direction: "like" })
+      .expect(200);
+    await request(app)
+      .put("/api/profile")
+      .set("X-User-Id", "u1")
+      .send({ nickname: "Sara", emoji: "🦄" })
+      .expect(200);
+    restart();
+
+    const restarted = startApp();
+    const profile = await request(restarted).get("/api/profile").set("X-User-Id", "u1");
+    const likes = await request(restarted).get("/api/likes").set("X-User-Id", "u1");
+
+    expect(profile.body.profile).toEqual({ userId: "u1", nickname: "Sara", emoji: "🦄" });
+    expect(likes.body.memes.map((m: { id: string }) => m.id)).toEqual([meme.id]);
+  });
+
+  it("keeps a generated profile after a restart instead of generating a new one", async () => {
+    const first = await request(startApp()).get("/api/profile").set("X-User-Id", "u1");
+    restart();
+
+    const second = await request(startApp()).get("/api/profile").set("X-User-Id", "u1");
+
+    expect(second.body).toEqual(first.body);
   });
 });

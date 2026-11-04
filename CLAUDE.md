@@ -19,14 +19,15 @@ An npm workspaces monorepo with TypeScript in both workspaces.
 
 Backend layers (keep them separate):
 
-- `backend/src/app.ts`: the thin HTTP layer. `createApp(swipeService, options)` validates input, reads the user id from the `X-User-Id` header and maps results and errors to status codes. No business logic.
+- `backend/src/app.ts`: the thin HTTP layer. `createApp(swipeService, profileService, options)` validates input, reads the user id from the `X-User-Id` header and maps results and errors to status codes. No business logic.
 - `backend/src/swipes/service.ts`: the swipe service, which holds the business logic. It depends only on the meme catalog and a `SwipeRepository`, and is tested without HTTP.
 - `backend/src/swipes/repository.ts`: the `SwipeRepository` interface and its in-memory implementation (used in tests). This is where a database plugs in: implement the interface and pass it to `createSwipeService` in `backend/src/index.ts`. Do not change the service for this.
 - `backend/src/swipes/sqlite-repository.ts`: the SQLite implementation of `SwipeRepository`, used by the running app. New implementations should pass the shared service tests in `backend/test/service.test.ts`, which run against every repository.
 - `backend/src/memes/`: the meme catalog and seed data (`seed.ts`). Images are SVGs in `backend/assets/memes`.
-- `backend/src/index.ts`: wires catalog, repository, service and app together.
+- `backend/src/profiles/`: the same layers for profiles (nickname and emoji per user id): `service.ts` has the rules (generated profile for new users, validation), `repository.ts` the `ProfileRepository` interface and an in-memory implementation, `sqlite-repository.ts` the SQLite one. A profile uses the same user id as the swipes.
+- `backend/src/index.ts`: wires catalog, repositories, services and app together.
 
-Frontend: `App.tsx` owns the state and the views, `MemeCard.tsx` handles swiping (buttons, arrow keys, pointer drag, no gesture library), `api.ts` is the only code that calls `fetch`, and `identity.ts` keeps the anonymous user id in localStorage.
+Frontend: `App.tsx` owns the state and the views, `MemeCard.tsx` handles swiping (buttons, arrow keys, pointer drag, no gesture library), `ProfileView.tsx` edits the nickname and emoji, `api.ts` is the only code that calls `fetch`, and `identity.ts` keeps the anonymous user id in localStorage.
 
 ## Commands
 
