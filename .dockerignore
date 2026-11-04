@@ -3,4 +3,5 @@ dist
 .git
 .github
 *.tsbuildinfo
+backend/data
 .DS_Store

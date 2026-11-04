@@ -14,14 +14,15 @@ Update [CHANGELOG.md](CHANGELOG.md) with every change, under `## Unreleased` in 
 
 An npm workspaces monorepo with TypeScript in both workspaces.
 
-- `backend/`: Express 5 API (port 3000). Storage is in memory.
+- `backend/`: Express 5 API (port 3000). Swipes are stored in SQLite (`node:sqlite`, built into Node 22), in the file given by `DATABASE_FILE` (default `backend/data/meme-tinder.db`).
 - `frontend/`: React 19 + Vite (port 5173). The dev server proxies `/api` to the backend. In production the backend serves the built frontend (`STATIC_DIR`), so there is one process on one port.
 
 Backend layers (keep them separate):
 
 - `backend/src/app.ts`: the thin HTTP layer. `createApp(swipeService, options)` validates input, reads the user id from the `X-User-Id` header and maps results and errors to status codes. No business logic.
 - `backend/src/swipes/service.ts`: the swipe service, which holds the business logic. It depends only on the meme catalog and a `SwipeRepository`, and is tested without HTTP.
-- `backend/src/swipes/repository.ts`: the `SwipeRepository` interface and its in-memory implementation. This is where a database plugs in: implement the interface and pass it to `createSwipeService` in `backend/src/index.ts`. Do not change the service for this.
+- `backend/src/swipes/repository.ts`: the `SwipeRepository` interface and its in-memory implementation (used in tests). This is where a database plugs in: implement the interface and pass it to `createSwipeService` in `backend/src/index.ts`. Do not change the service for this.
+- `backend/src/swipes/sqlite-repository.ts`: the SQLite implementation of `SwipeRepository`, used by the running app. New implementations should pass the shared service tests in `backend/test/service.test.ts`, which run against every repository.
 - `backend/src/memes/`: the meme catalog and seed data (`seed.ts`). Images are SVGs in `backend/assets/memes`.
 - `backend/src/index.ts`: wires catalog, repository, service and app together.
 

@@ -6,3 +6,9 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
+    volumes:
+      # Keeps the SQLite database (swipes) when the container is restarted or recreated.
+      - meme-tinder-data:/app/data
+
+volumes:
+  meme-tinder-data:
