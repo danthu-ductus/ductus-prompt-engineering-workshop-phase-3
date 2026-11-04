@@ -31,16 +31,19 @@ Frontend: `App.tsx` owns the state and the views, `MemeCard.tsx` handles swiping
 
 Run from the repository root.
 
-| Command | What it does |
-| --- | --- |
-| `npm install` | Installs all workspaces |
-| `npm run dev` | Backend and frontend in watch mode (open http://localhost:5173) |
-| `npm test` | All backend and frontend tests (Vitest) |
-| `npm run build` | Builds both workspaces (type checks too) |
-| `npm test -w backend` / `npm test -w frontend` | Tests for one workspace |
-| `npx vitest run test/service.test.ts` (inside a workspace folder) | One test file |
+| Command                                                           | What it does                                                    |
+| ----------------------------------------------------------------- | --------------------------------------------------------------- |
+| `npm install`                                                     | Installs all workspaces                                         |
+| `npm run dev`                                                     | Backend and frontend in watch mode (open http://localhost:5173) |
+| `npm test`                                                        | All backend and frontend tests (Vitest)                         |
+| `npm run build`                                                   | Builds both workspaces (type checks too)                        |
+| `npm test -w backend` / `npm test -w frontend`                    | Tests for one workspace                                         |
+| `npx vitest run test/service.test.ts` (inside a workspace folder) | One test file                                                   |
+| `npm run lint`                                                    | ESLint in both workspaces (config in `eslint.config.js`)        |
+| `npm run format`                                                  | Formats all files with Prettier (`.prettierrc.json`)            |
+| `npm run format:check`                                            | Checks formatting without changing files                        |
 
-Run `npm test` and `npm run build` before you finish a change.
+Run `npm run format`, `npm run lint`, `npm test` and `npm run build` before you finish a change. CI (`.github/workflows/ci.yml`) runs the same checks on every pull request and push to `main`, and `main` requires it to pass.
 
 ## Conventions
 

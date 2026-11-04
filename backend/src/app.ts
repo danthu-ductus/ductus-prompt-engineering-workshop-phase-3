@@ -93,10 +93,19 @@ export function createApp(swipeService: SwipeService, options: AppOptions = {}) 
   }
 
   // Malformed JSON bodies and other client errors from middleware get a JSON error too.
-  app.use((err: { status?: number; message?: string }, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status && err.status < 500 ? err.status : 500;
-    res.status(status).json({ error: status < 500 ? "Invalid request" : "Internal server error" });
-  });
+  app.use(
+    (
+      err: { status?: number; message?: string },
+      _req: Request,
+      res: Response,
+      _next: NextFunction,
+    ) => {
+      const status = err.status && err.status < 500 ? err.status : 500;
+      res
+        .status(status)
+        .json({ error: status < 500 ? "Invalid request" : "Internal server error" });
+    },
+  );
 
   return app;
 }

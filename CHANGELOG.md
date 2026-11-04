@@ -6,6 +6,8 @@
 
 ### Added
 
+- Guardrails: a GitHub Actions CI workflow (`.github/workflows/ci.yml`) that runs lint, format check, tests and build on every pull request and push to `main`; ESLint (typescript-eslint recommended, React hooks and React refresh rules) and Prettier (`printWidth` 100) configured at the root; `npm run lint`, `npm run format` and `npm run format:check`; `.gitattributes` for LF line endings; README steps for requiring the CI check on `main` (#1)
+
 - 20 more memes (SVG assets and seed entries), bringing the catalog to 30
 
 - Agent guidance in `CLAUDE.md`: architecture, folder structure, commands, coding conventions, extension points (`SwipeRepository`, service vs. HTTP layer) and the rule that `CHANGELOG.md` is updated with every change (#8)
@@ -40,6 +42,7 @@
 
 ### Changed
 
+- All existing code and docs reformatted with Prettier, and the two existing lint errors fixed (the first meme load is deferred out of the effect body in `App.tsx`) (#1)
 - `MemeCard` now takes `onSwipe(direction)` and owns the Like and Nope buttons, which moved out of `App`; buttons are disabled while a swipe request is in flight (#7)
 - The plain "No more memes." text is replaced by the `EmptyState` component (#5)
 - `GET /api/memes/next` is now per user (requires `X-User-Id`) and returns `{ "meme": ... }`, with `{ "meme": null }` when all memes are swiped (#3)
