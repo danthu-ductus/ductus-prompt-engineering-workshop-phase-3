@@ -6,6 +6,8 @@
 
 ### Added
 
+- Vision 002 ("It's a Match!") from the upstream repository in `vision/002-pivot.md`, formatted with Prettier
+
 - Guardrails: a GitHub Actions CI workflow (`.github/workflows/ci.yml`) that runs lint, format check, tests and build on every pull request and push to `main`; ESLint (typescript-eslint recommended, React hooks and React refresh rules) and Prettier (`printWidth` 100) configured at the root; `npm run lint`, `npm run format` and `npm run format:check`; `.gitattributes` for LF line endings; README steps for requiring the CI check on `main` (#1)
 
 - 20 more memes (SVG assets and seed entries), bringing the catalog to 30
