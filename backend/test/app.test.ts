@@ -1,6 +1,7 @@
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { createCompatibilityService } from "../src/compatibility/service.js";
 import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createInMemoryProfileRepository } from "../src/profiles/repository.js";
 import { createProfileService } from "../src/profiles/service.js";
@@ -13,6 +14,7 @@ function setup() {
   return createApp(
     createSwipeService(catalog, createInMemorySwipeRepository()),
     createProfileService(createInMemoryProfileRepository()),
+    createCompatibilityService(createInMemorySwipeRepository(), createInMemoryProfileRepository()),
   );
 }
 

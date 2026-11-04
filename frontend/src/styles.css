@@ -325,3 +325,36 @@ nav button[aria-current="page"] {
   opacity: 0.5;
   cursor: default;
 }
+
+.people-view ul {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.people-view li {
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.people-view .person-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.people-view p {
+  margin: 0.25rem 0 0;
+}
+
+.people-view .score {
+  font-weight: 600;
+  color: #2e9e5b;
+}
+
+.people-view .progress {
+  color: #666;
+}

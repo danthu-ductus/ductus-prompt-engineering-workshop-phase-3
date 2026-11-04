@@ -8,6 +8,8 @@ export interface Profile {
 /** Storage seam for profiles. Replace the in-memory implementation to use a real database. */
 export interface ProfileRepository {
   get(userId: string): Profile | null;
+  /** Every stored profile. */
+  list(): Profile[];
   /** Creates the profile, or replaces the one stored for the same user id. */
   save(profile: Profile): void;
 }
@@ -19,6 +21,7 @@ export function createInMemoryProfileRepository(): ProfileRepository {
       const profile = profiles.get(userId);
       return profile ? { ...profile } : null;
     },
+    list: () => [...profiles.values()].map((profile) => ({ ...profile })),
     save: (profile) => {
       profiles.set(profile.userId, { ...profile });
     },

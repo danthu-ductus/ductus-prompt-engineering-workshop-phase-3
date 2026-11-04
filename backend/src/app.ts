@@ -1,6 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import type { CompatibilityService } from "./compatibility/service.js";
 import { IMAGE_PATH } from "./memes/catalog.js";
 import { DIRECTIONS, type Direction } from "./swipes/repository.js";
 import { InvalidProfileError, type ProfileService } from "./profiles/service.js";
@@ -30,6 +31,7 @@ export interface AppOptions {
 export function createApp(
   swipeService: SwipeService,
   profileService: ProfileService,
+  compatibilityService: CompatibilityService,
   options: AppOptions = {},
 ) {
   const app = express();
@@ -108,6 +110,14 @@ export function createApp(
       }
       throw err;
     }
+  });
+
+  // 200 with { people }: every other user with a compatibility score, best match first.
+  // Never exposes a user id or any swipes, only nickname, emoji, shared count and score.
+  app.get("/api/people", (req, res) => {
+    const userId = requireUserId(req, res);
+    if (!userId) return;
+    res.json({ people: compatibilityService.listPeople(userId) });
   });
 
   // Built frontend (production only). Registered after the API routes and never answers /api paths.

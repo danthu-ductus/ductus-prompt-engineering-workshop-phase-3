@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import {
   fetchLikes,
   fetchNextMeme,
+  fetchPeople,
   fetchProfile,
   resetSwipes,
   sendSwipe,
   updateProfile,
   type Direction,
   type Meme,
+  type Person,
   type Profile,
 } from "./api";
 import { celebrationFor, countLifetimeSwipe, nextStreak, type Celebration } from "./celebrations";
@@ -15,10 +17,11 @@ import { Confetti } from "./Confetti";
 import { EmptyState } from "./EmptyState";
 import { LikesView } from "./LikesView";
 import { MemeCard } from "./MemeCard";
+import { PeopleView } from "./PeopleView";
 import { waitForFlyOut } from "./motion";
 import { ProfileView } from "./ProfileView";
 
-type View = "swipe" | "likes" | "profile";
+type View = "swipe" | "likes" | "people" | "profile";
 
 /** How long (in ms) a celebration message stays on screen. */
 const CELEBRATION_MS = 3000;
@@ -27,6 +30,7 @@ export function App() {
   const [view, setView] = useState<View>("swipe");
   const [meme, setMeme] = useState<Meme | null>(null);
   const [likes, setLikes] = useState<Meme[] | null>(null);
+  const [people, setPeople] = useState<Person[] | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [swiping, setSwiping] = useState(false);
@@ -69,6 +73,17 @@ export function App() {
     void Promise.resolve().then(load);
     void Promise.resolve().then(loadProfile);
   }, [load, loadProfile]);
+
+  async function showPeople() {
+    setView("people");
+    setPeople(null);
+    setError(null);
+    try {
+      setPeople(await fetchPeople());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    }
+  }
 
   async function showProfile() {
     setView("profile");
@@ -156,6 +171,13 @@ export function App() {
         </button>
         <button
           type="button"
+          aria-current={view === "people" ? "page" : undefined}
+          onClick={showPeople}
+        >
+          People
+        </button>
+        <button
+          type="button"
           aria-current={view === "profile" ? "page" : undefined}
           onClick={showProfile}
         >
@@ -164,6 +186,7 @@ export function App() {
       </nav>
       {error && <p role="alert">Something went wrong: {error}. Is the backend running?</p>}
       {view === "likes" && !error && (likes ? <LikesView memes={likes} /> : <p>Loading…</p>)}
+      {view === "people" && !error && (people ? <PeopleView people={people} /> : <p>Loading…</p>)}
       {view === "profile" &&
         !error &&
         (profile ? <ProfileView profile={profile} onSave={saveProfile} /> : <p>Loading…</p>)}

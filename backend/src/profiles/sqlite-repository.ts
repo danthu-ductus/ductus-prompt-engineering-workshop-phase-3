@@ -25,6 +25,7 @@ export function createSqliteProfileRepository(file: string): SqliteProfileReposi
   `);
 
   const select = db.prepare("SELECT user_id, nickname, emoji FROM profiles WHERE user_id = ?");
+  const selectAll = db.prepare("SELECT user_id, nickname, emoji FROM profiles ORDER BY rowid");
   const upsert = db.prepare(`
     INSERT INTO profiles (user_id, nickname, emoji) VALUES (?, ?, ?)
     ON CONFLICT (user_id) DO UPDATE SET nickname = excluded.nickname, emoji = excluded.emoji
@@ -37,6 +38,12 @@ export function createSqliteProfileRepository(file: string): SqliteProfileReposi
         ? { userId: String(row.user_id), nickname: String(row.nickname), emoji: String(row.emoji) }
         : null;
     },
+    list: () =>
+      selectAll.all().map((row) => ({
+        userId: String(row.user_id),
+        nickname: String(row.nickname),
+        emoji: String(row.emoji),
+      })),
     save: (profile) => {
       upsert.run(profile.userId, profile.nickname, profile.emoji);
     },
