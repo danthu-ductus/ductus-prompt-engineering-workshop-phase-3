@@ -358,3 +358,82 @@ nav button[aria-current="page"] {
 .people-view .progress {
   color: #666;
 }
+
+/* --- It's a Match! --- */
+
+.match-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.match-card {
+  width: 100%;
+  max-width: 360px;
+  box-sizing: border-box;
+  padding: 2rem 1.5rem;
+  border-radius: 24px;
+  text-align: center;
+  color: #fff;
+  background: linear-gradient(135deg, #a855f7, #d64545, #f5b700);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  animation: match-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.match-card h2 {
+  margin: 0 0 1rem;
+  font-size: 2.2rem;
+}
+
+.match-people {
+  margin: 0 0 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.match-card button {
+  margin-top: 1rem;
+  padding: 0.75rem 2rem;
+  border: 0;
+  border-radius: 999px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #d64545;
+  background: #fff;
+  cursor: pointer;
+}
+
+@keyframes match-pop {
+  from {
+    scale: 0.4;
+    opacity: 0;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-card {
+    animation: none;
+  }
+}
+
+.demo-badge {
+  display: inline-block;
+  margin-left: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid currentcolor;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  opacity: 0.8;
+}

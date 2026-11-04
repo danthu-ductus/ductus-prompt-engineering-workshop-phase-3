@@ -83,6 +83,8 @@ export interface Person {
   id: string;
   nickname: string;
   emoji: string;
+  /** True for a labeled demo persona, not a real person. */
+  demo: boolean;
   /** How many memes both of you have swiped. */
   sharedCount: number;
   /** Percentage (0-100), or null until enough memes are swiped by both. */
@@ -95,4 +97,23 @@ export interface Person {
 export async function fetchPeople(): Promise<Person[]> {
   const { people } = await request<{ people: Person[] }>("/api/people");
   return people;
+}
+
+/** A new match to celebrate. It never contains a user id. */
+export interface Match {
+  /** The other person's public id (the same one as in the people list). */
+  id: string;
+  me: { nickname: string; emoji: string; demo: boolean };
+  person: { nickname: string; emoji: string; demo: boolean };
+  /** The compatibility percentage when the match was made. */
+  score: number;
+  sharedCount: number;
+}
+
+/** Checks for new matches. Each match is returned once, so call it often but show what it returns. */
+export async function checkMatches(): Promise<Match[]> {
+  const { matches } = await request<{ matches: Match[] }>("/api/matches/check", {
+    method: "POST",
+  });
+  return matches;
 }
