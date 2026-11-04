@@ -45,7 +45,7 @@ ESLint and Prettier are configured once at the repository root (`eslint.config.j
 `main` must require the CI check before merging. This needs admin rights on the repository, so a repository admin sets it once:
 
 1. Open **Settings → Branches** (or **Rules → Rulesets**) and add a rule for `main`.
-2. Turn on **Require status checks to pass before merging** and select the check **Lint, format, test and build** (it shows up after the workflow has run once).
+2. Turn on **Require status checks to pass before merging** and select the check **ci** (it shows up after the workflow has run once).
 3. Turn on **Require a pull request before merging** so changes cannot be pushed straight to `main`.
 
 Or with the GitHub CLI (replace `OWNER/REPO`):
@@ -53,7 +53,7 @@ Or with the GitHub CLI (replace `OWNER/REPO`):
 ```bash
 gh api -X PUT repos/OWNER/REPO/branches/main/protection --input - <<'JSON'
 {
-  "required_status_checks": { "strict": true, "contexts": ["Lint, format, test and build"] },
+  "required_status_checks": { "strict": true, "contexts": ["ci"] },
   "enforce_admins": false,
   "required_pull_request_reviews": { "required_approving_review_count": 0 },
   "restrictions": null
