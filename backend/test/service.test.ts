@@ -119,7 +119,11 @@ describe("swipe service", () => {
       const likes = service.listLikedMemes("u1");
 
       expect(ids(likes)).toEqual(["a", "c"]);
-      expect(likes[0]).toEqual({ id: "a", caption: "A", imageUrl: expect.stringMatching(/a\.svg$/) });
+      expect(likes[0]).toEqual({
+        id: "a",
+        caption: "A",
+        imageUrl: expect.stringMatching(/a\.svg$/),
+      });
       expect(service.listLikedMemes("u1")).toEqual(likes);
     });
 

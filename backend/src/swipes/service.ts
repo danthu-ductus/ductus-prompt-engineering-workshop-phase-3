@@ -21,7 +21,10 @@ export interface SwipeService {
   resetSwipes(userId: string): void;
 }
 
-export function createSwipeService(catalog: MemeCatalog, repository: SwipeRepository): SwipeService {
+export function createSwipeService(
+  catalog: MemeCatalog,
+  repository: SwipeRepository,
+): SwipeService {
   return {
     getNextMeme(userId) {
       const seen = new Set(repository.listByUser(userId).map((swipe) => swipe.memeId));

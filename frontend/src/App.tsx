@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchLikes, fetchNextMeme, resetSwipes, sendSwipe, type Direction, type Meme } from "./api";
+import {
+  fetchLikes,
+  fetchNextMeme,
+  resetSwipes,
+  sendSwipe,
+  type Direction,
+  type Meme,
+} from "./api";
 import { EmptyState } from "./EmptyState";
 import { LikesView } from "./LikesView";
 import { MemeCard } from "./MemeCard";
@@ -26,7 +33,8 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    load();
+    // Defer the first load so no state is set synchronously in the effect (react-hooks/set-state-in-effect).
+    void Promise.resolve().then(load);
   }, [load]);
 
   async function showLikes() {
@@ -74,10 +82,18 @@ export function App() {
     <main>
       <h1>Meme-Tinder</h1>
       <nav>
-        <button type="button" aria-current={view === "swipe" ? "page" : undefined} onClick={showSwipe}>
+        <button
+          type="button"
+          aria-current={view === "swipe" ? "page" : undefined}
+          onClick={showSwipe}
+        >
           Swipe
         </button>
-        <button type="button" aria-current={view === "likes" ? "page" : undefined} onClick={showLikes}>
+        <button
+          type="button"
+          aria-current={view === "likes" ? "page" : undefined}
+          onClick={showLikes}
+        >
           Likes
         </button>
       </nav>
