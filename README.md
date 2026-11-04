@@ -74,4 +74,4 @@ All endpoints are under `/api` and need an `X-User-Id` header (the frontend crea
 
 Errors are JSON `{ "error": "..." }`: `400` for a missing user id, missing meme id or invalid direction, `404` for an unknown meme id. Swiping the same meme twice is idempotent: the first swipe is kept.
 
-Swipes are stored in memory (`backend/src/swipes/repository.ts`) and are lost on restart. Implement `SwipeRepository` to plug in a database.
+Swipes are stored in a SQLite database file (`backend/src/swipes/sqlite-repository.ts`, using Node's built-in `node:sqlite`), so likes survive restarts. Locally the file is `backend/data/meme-tinder.db`; set `DATABASE_FILE` to change it. See [deploy/README.md](deploy/README.md) for where Docker keeps it. To use another database, implement `SwipeRepository` (`backend/src/swipes/repository.ts`) and pass it to `createSwipeService` in `backend/src/index.ts`.

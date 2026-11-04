@@ -6,6 +6,8 @@
 
 ### Added
 
+- Likes survive restarts: a SQLite implementation of `SwipeRepository` (`createSqliteSwipeRepository`, using Node's built-in `node:sqlite`, no new dependency) wired in at startup, with the file set by `DATABASE_FILE` (default `backend/data/meme-tinder.db`); the Docker image stores it in `/app/data`, a named volume in `docker-compose.yml`; the service tests now run against both repositories, plus restart tests with a real database file (#2)
+
 - Guardrails: a GitHub Actions CI workflow (`.github/workflows/ci.yml`) that runs lint, format check, tests and build on every pull request and push to `main`; ESLint (typescript-eslint recommended, React hooks and React refresh rules) and Prettier (`printWidth` 100) configured at the root; `npm run lint`, `npm run format` and `npm run format:check`; `.gitattributes` for LF line endings; README steps for requiring the CI check on `main` (#1)
 
 - 20 more memes (SVG assets and seed entries), bringing the catalog to 30
