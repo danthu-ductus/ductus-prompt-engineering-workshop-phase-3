@@ -22,6 +22,9 @@ RUN npm ci --omit=dev --workspace backend --include-workspace-root=false
 COPY --from=build /app/backend/dist backend/dist
 COPY --from=build /app/backend/assets backend/assets
 COPY --from=build /app/frontend/dist frontend/dist
+# Swipes are stored in a SQLite file in /app/data, which docker-compose.yml mounts as a volume.
+ENV DATABASE_FILE=/app/data/meme-tinder.db
+RUN mkdir -p /app/data && chown node:node /app/data
 USER node
 EXPOSE 3000
 CMD ["node", "backend/dist/index.js"]

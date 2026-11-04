@@ -1,17 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { createMemeCatalog } from "../src/memes/catalog.js";
 import { createInMemorySwipeRepository } from "../src/swipes/repository.js";
+import type { SwipeRepository } from "../src/swipes/repository.js";
 import { createSwipeService, UnknownMemeError } from "../src/swipes/service.js";
+import { createSqliteSwipeRepository } from "../src/swipes/sqlite-repository.js";
 
-function setup() {
-  const catalog = createMemeCatalog([
-    { id: "a", caption: "A", file: "a.svg" },
-    { id: "b", caption: "B", file: "b.svg" },
-  ]);
-  return createSwipeService(catalog, createInMemorySwipeRepository());
-}
+// The same behavioral tests run against every SwipeRepository implementation.
+const repositories: [string, () => SwipeRepository][] = [
+  ["in-memory", createInMemorySwipeRepository],
+  ["sqlite", () => createSqliteSwipeRepository(":memory:")],
+];
 
-describe("swipe service", () => {
+describe.each(repositories)("swipe service with %s repository", (_name, createRepository) => {
+  function setup() {
+    const catalog = createMemeCatalog([
+      { id: "a", caption: "A", file: "a.svg" },
+      { id: "b", caption: "B", file: "b.svg" },
+    ]);
+    return createSwipeService(catalog, createRepository());
+  }
+
   it("returns the first meme to a user who has not swiped", () => {
     expect(setup().getNextMeme("u1")?.id).toBe("a");
   });
@@ -95,7 +103,7 @@ describe("swipe service", () => {
         { id: "b", caption: "B", file: "b.svg" },
         { id: "c", caption: "C", file: "c.svg" },
       ]);
-      return createSwipeService(catalog, createInMemorySwipeRepository());
+      return createSwipeService(catalog, createRepository());
     }
     const ids = (memes: { id: string }[]) => memes.map((meme) => meme.id);
 

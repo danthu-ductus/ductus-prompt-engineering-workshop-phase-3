@@ -17,7 +17,7 @@ How it works:
 - One container, one process, one port (3000). There is no CORS or proxy configuration.
 - `deploy/Dockerfile` is multi-stage (`node:22-alpine`, matching `.nvmrc`). The build stage installs all workspaces and runs `npm run build`. The final stage installs only the backend's production dependencies and copies in the built backend, the meme assets and the built frontend.
 - The backend serves the built frontend when the `STATIC_DIR` environment variable is set (the image sets it to `/app/frontend/dist`). Unknown non-API paths fall back to `index.html`; `/api` paths are never shadowed.
-- Swipes are stored in memory, so they are lost when the container restarts.
+- Swipes are stored in a SQLite database at `/app/data/meme-tinder.db` inside the container (set by `DATABASE_FILE` in the image). `/app/data` is the named volume `meme-tinder-data`, so likes survive container restarts, `docker compose down` and rebuilds. To start over with an empty database, remove the volume: `docker compose -f deploy/docker-compose.yml down -v`.
 - To use another host port, change `"3000:3000"` in `deploy/docker-compose.yml`, for example to `"8080:3000"`.
 
 ## Local
@@ -30,6 +30,8 @@ npm run dev
 ```
 
 Open http://localhost:5173. The Vite dev server proxies `/api` to the backend on port 3000.
+
+Swipes are stored in a SQLite database file, `backend/data/meme-tinder.db`, which is created on first start and ignored by git. They survive restarts of the backend. Set `DATABASE_FILE` to use another file, and delete the file to start over with an empty database. The backend prints the path it uses on startup.
 
 To try the production setup without Docker:
 
